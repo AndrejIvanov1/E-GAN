@@ -2,7 +2,8 @@ import tensorflow as tf
 
 class Generator:
 
-	def __init__(self, model=None):
+	def __init__(self, model=None, noise_dim=100):
+		self._noise_dim = noise_dim
 		if not model:
 			self._model = self._create_model()
 		else:
@@ -11,7 +12,7 @@ class Generator:
 
 	def _create_model(self):
 		model = tf.keras.Sequential()
-		model.add(tf.keras.layers.Dense(7*7*256, use_bias=False, input_shape=(100,)))
+		model.add(tf.keras.layers.Dense(7*7*256, use_bias=False, input_shape=(self._noise_dim,)))
 		model.add(tf.keras.layers.BatchNormalization())
 		model.add(tf.keras.layers.LeakyReLU())
 		  
