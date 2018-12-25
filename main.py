@@ -1,9 +1,15 @@
 from generator import Generator
+from discriminator import Discriminator
+from generation import Generation
 import os
+
+num_epochs = 1
+
 
 if __name__ == '__main__':
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-	g = Generator()
-	child = g.clone()
 
-	print(child.get_model().layers == g.get_model().layers)
+	generation = Generation(num_parents=1, num_children=3)
+	generation.initialize()
+
+	
