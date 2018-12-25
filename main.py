@@ -17,8 +17,9 @@ def train(dataset, epochs):
 	generation.initialize(noise_dim=100)
 
 	discriminator = Discriminator()
-
-	egan = EGAN(discriminator, generation)
+	
+	gan = EGAN(discriminator, generation)
+	gan.train(dataset, epochs, batch_size=BATCH_SIZE, noise_dim=100)
 
 if __name__ == '__main__':
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"

@@ -8,19 +8,19 @@ class EGAN:
 		self._generation = generation
 		self._discriminator_update_steps = 1
 
-	def train(self, dataset, epochs):
+	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
+		self._batch_size = batch_size
+		self._noise_dim = noise_dim
 		for epoch in range(epochs):
 			iterator = dataset.make_one_shot_iterator()
 			self.train_step(iterator)
 
 	def train_step(self, dataset_iterator):
-		print("Here")
 		for step in range(self._discriminator_update_steps):
 			real_images = dataset_iterator.get_next()
-			noise = tf.random_normal([BATCH_SIZE, noise_dim])
+			noise = tf.random_normal([self._batch_size, self._noise_dim])
 
 			with tf.GradientTape() as disc_tape:
-				generated_images = generation.generate_images(noise)
+				generated_images = self._generation.generate_images(noise)
 				
-				print(real_images.shape)
-				print(generated_images.shape)
+				
