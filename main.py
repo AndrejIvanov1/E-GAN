@@ -3,10 +3,10 @@ tf.enable_eager_execution()
 from generator import Generator
 from discriminator import Discriminator
 from generation import Generation
+from egan import EGAN
 import os
 
 num_epochs = 1
-discriminator_update_steps = 1
 noise_dim = 100
 generator_batch_size = 16
 BUFFER_SIZE = 60000
@@ -18,15 +18,7 @@ def train(dataset, epochs):
 
 	discriminator = Discriminator()
 
-	for epoch in range(num_epochs):
-		iterator = dataset.make_one_shot_iterator()
-		
-		for step in range(discriminator_update_steps):
-			noise = tf.random_normal([BATCH_SIZE, noise_dim])
-
-			with tf.GradientTape() as disc_tape:
-				generated_images = generation.generate_images(noise)
-				print(generated_images.shape)
+	egan = EGAN(discriminator, generation)
 
 if __name__ == '__main__':
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
