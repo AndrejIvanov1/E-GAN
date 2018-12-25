@@ -2,3 +2,5 @@
 MNIST_data/*
 Output/*
 data/*
+__pycache__/
+stuff/

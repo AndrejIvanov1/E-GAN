@@ -117,12 +117,15 @@ if __name__ == "__main__":
     # Collect the dataset
     mnist = input_data.read_data_sets("MNIST_data/")
 
-    sess = tf.Session()
+    config = tf.ConfigProto(
+        device_count={'GPU': 0}
+    )
+    sess = tf.Session(config=config)
 
     batch_size = 50
     z_dimensions = 100
 
-    x_placeholder = tf.placeholder("float", shape = [None,28,28,1], name='x_placeholder')
+    x_placeholder = tf.placeholder("float", shape=[None, 28, 28, 1], name='x_placeholder')
 
     Gz = generator(batch_size, z_dimensions)
 
