@@ -1,4 +1,7 @@
 from generator import Generator
+import tensorflow as tf
+tf.enable_eager_execution()
+
 
 class Generation:
 
@@ -14,3 +17,14 @@ class Generation:
 
 	def get_parents(self):
 		return self._parents
+
+	def generate_images(self, noise):
+		batch_size = noise.shape[0]
+		parent_batch_size = int(batch_size) // self._num_parents
+		curr_index = 0
+		images_per_parent = []
+		for parent in self.get_parents():
+			images_batch = parent.generate_images(noise[curr_index:min(curr_index+parent_batch_size, batch_size),:], training=True)
+			images_per_parent.append(images_batch)
+
+		return tf.reshape(tf.stack(images_per_parent), (-1, 28, 28, 1))

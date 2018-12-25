@@ -1,4 +1,5 @@
 import tensorflow as tf
+tf.enable_eager_execution()
 
 class Generator:
 
@@ -45,3 +46,6 @@ class Generator:
 		model_clone.set_weights(self.get_weights())
 
 		return Generator(model=model_clone)
+
+	def generate_images(self, noise, training=False):
+		return self.get_model()(noise, training=training)
