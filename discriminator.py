@@ -5,10 +5,13 @@ class Discriminator:
 
 	def __init__(self):
 		self._model = self._create_model()
+		self._optimizer = tf.train.AdamOptimizer(1e-4)
 
 	def get_model(self):
 		return self._model
 
+	def get_optimizer(self):
+		return self._optimizer
 	
 	def _create_model(self):
 		model = tf.keras.Sequential()
@@ -25,6 +28,8 @@ class Discriminator:
 	 
 		return model
 
+	def variables(self):
+		return self.get_model().variables
 
 	def discriminate_images(self, images):
 		return self.get_model()(images, training=True)

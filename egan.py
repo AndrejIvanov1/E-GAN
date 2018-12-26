@@ -18,16 +18,20 @@ class EGAN:
 	def train_step(self, dataset_iterator):
 		for step in range(self._discriminator_update_steps):
 			real_images = dataset_iterator.get_next()
-			noise = tf.random_normal([self._batch_size, self._noise_dim])
-			generated_images = self._generation.generate_images(noise)
-
-			with tf.GradientTape() as disc_tape:
-				real_output = self._discriminator.discriminate_images(real_images)
-				generated_output = self._discriminator.discriminate_images(generated_images)
-
-				assert real_output.shape == generated_output.shape == (self._batch_size, 1)
-
-				disc_loss = self._discriminator.loss(real_output, generated_output)
-
-				#disc_gradient
+			self.disc_train_step(real_images)
 				
+
+	def disc_train_step(self, real_images):
+		noise = tf.random_normal([self._batch_size, self._noise_dim])
+		generated_images = self._generation.generate_images(noise)
+
+		with tf.GradientTape() as disc_tape:
+			real_output = self._discriminator.discriminate_images(real_images)
+			generated_output = self._discriminator.discriminate_images(generated_images)
+
+			assert real_output.shape == generated_output.shape == (self._batch_size, 1)
+
+			disc_loss = self._discriminator.loss(real_output, generated_output)
+
+			gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
+			self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
