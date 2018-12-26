@@ -19,8 +19,13 @@ class EGAN:
 		for step in range(self._discriminator_update_steps):
 			real_images = dataset_iterator.get_next()
 			noise = tf.random_normal([self._batch_size, self._noise_dim])
+			generated_images = self._generation.generate_images(noise)
 
 			with tf.GradientTape() as disc_tape:
-				generated_images = self._generation.generate_images(noise)
+				real_output = self._discriminator.discriminate_images(real_images)
+				generated_output = self._discriminator.discriminate_images(generated_images)
+
+				assert real_output.shape == generated_output.shape == (self._batch_size, 1)
+
 				
 				

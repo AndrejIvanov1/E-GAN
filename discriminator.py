@@ -6,6 +6,9 @@ class Discriminator:
 	def __init__(self):
 		self._model = self._create_model()
 
+	def get_model(self):
+		return self._model
+
 	
 	def _create_model(self):
 		model = tf.keras.Sequential()
@@ -21,3 +24,7 @@ class Discriminator:
 		model.add(tf.keras.layers.Dense(1))
 	 
 		return model
+
+
+	def discriminate_images(self, images):
+		return self.get_model()(images, training=True)
