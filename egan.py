@@ -27,5 +27,7 @@ class EGAN:
 
 				assert real_output.shape == generated_output.shape == (self._batch_size, 1)
 
-				
+				disc_loss = self._discriminator.loss(real_output, generated_output)
+
+				#disc_gradient
 				

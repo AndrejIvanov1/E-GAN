@@ -28,3 +28,14 @@ class Discriminator:
 
 	def discriminate_images(self, images):
 		return self.get_model()(images, training=True)
+
+
+	def loss(self, real_output, generated_output):
+		real_loss = tf.losses.sigmoid_cross_entropy( \
+			multi_class_labels=tf.ones_like(real_output), logits=real_output)
+
+		generated_loss = tf.losses.sigmoid_cross_entropy( \
+			multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
+
+		total_loss = real_loss + generated_loss
+		return total_loss
