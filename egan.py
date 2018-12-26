@@ -9,6 +9,7 @@ class EGAN:
 		self._discriminator_update_steps = 1
 
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
+		train_step = tf.contrib.eager.defun(self.train_step)
 		self._batch_size = batch_size
 		self._noise_dim = noise_dim
 		for epoch in range(epochs):
