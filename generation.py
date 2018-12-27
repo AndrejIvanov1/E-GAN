@@ -15,8 +15,15 @@ class Generation:
 		for parent in range(self._num_parents):
 			self._parents.append(Generator(noise_dim=100))
 
+
+	def new_generation(self, new_parents):
+		self._parents = new_parents
+
 	def get_parents(self):
 		return self._parents
+
+	def get_num_parents(self):
+		return self._num_parents
 
 	def generate_images(self, noise):
 		batch_size = noise.shape[0]
