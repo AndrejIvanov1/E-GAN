@@ -39,6 +39,13 @@ class Discriminator:
 		real_loss = tf.losses.sigmoid_cross_entropy( \
 			multi_class_labels=tf.ones_like(real_output), logits=real_output)
 
+		#real_loss1 = tf.reduce_mean(tf.log(tf.reshape(real_output, (real_output.shape[0]))))
+		#print(real_output.shape)
+		#real_loss1 = tf.log(real_output)
+		#real_loss1 = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_output, labels=tf.ones_like(real_output)))
+		#real_loss2 = tf.reduce_mean(tf.log(real_output + 0.00001))
+		#print(real_loss, real_loss1, real_loss2)
+
 		generated_loss = tf.losses.sigmoid_cross_entropy( \
 			multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
 

@@ -5,6 +5,7 @@ class Generator:
 
 	def __init__(self, model=None, noise_dim=100):
 		self._noise_dim = noise_dim
+		self._optimizer = tf.train.AdamOptimizer(1e-4)
 		if not model:
 			self._model = self._create_model()
 		else:
@@ -40,6 +41,12 @@ class Generator:
 
 	def get_weights(self):
 		return self._model.get_weights()
+
+	def get_optimizer(self):
+		return self._optimizer
+
+	def variables(self):
+		return self.get_model().variables	
 
 	def clone(self):
 		model_clone = tf.keras.models.clone_model(self._model)

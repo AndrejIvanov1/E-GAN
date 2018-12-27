@@ -1,5 +1,6 @@
 import tensorflow as tf
 tf.enable_eager_execution()
+from mutations import heuristic_mutation
 
 
 class EGAN:
@@ -9,7 +10,7 @@ class EGAN:
 		self._discriminator_update_steps = 1
 
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
-		train_step = tf.contrib.eager.defun(self.train_step)
+		#train_step = tf.contrib.eager.defun(self.train_step)
 		self._batch_size = batch_size
 		self._noise_dim = noise_dim
 		for epoch in range(epochs):
@@ -20,7 +21,8 @@ class EGAN:
 		for step in range(self._discriminator_update_steps):
 			real_images = dataset_iterator.get_next()
 			self.disc_train_step(real_images)
-				
+
+		self.gen_train_step(mutations=[heuristic_mutation])
 
 	def disc_train_step(self, real_images):
 		noise = tf.random_normal([self._batch_size, self._noise_dim])
@@ -36,3 +38,17 @@ class EGAN:
 
 			gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 			self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
+
+	def gen_train_step(self, mutations):
+		for parent in self._generation.get_parents():
+			z = tf.random_normal([self._batch_size, self._noise_dim])
+
+			for mutation in mutations:
+				with tf.GradientTape() as gen_tape:
+					child = parent.clone()
+					Gz = child.generate_images(z, training=True)
+					DGz = self._discriminator.discriminate_images(Gz)
+					child_loss = mutation(DGz)
+
+					gradients_of_child = gen_tape.gradient(child_loss, child.variables())
+					child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
