@@ -1,9 +1,27 @@
 Problems: 
 1) Discriminator returns values -1 to 1 instead of 0 to 1
+2) Discriminator activation function ? Nothing vs softmax vs sigmoid
+
 
 Tasks:
-1) Visualise discriminator in tensorboard
-
+- Implement diversity fitness score
+- Visualise discriminator in tensorboard
 
 Future tasks:
 1) Parallelize children operations in EGAN
+
+
+
+Findings: 
+tf.losses.sigmoid_cross_entropy(tf.ones_like(Dgz), Dgz)
+				 SAME AS
+-tf.reduce_mean(tf.log(tf.nn.sigmoid(Dgz)))
+				 SAME AS
+		    E[log(Dgz)]
+
+
+tf.losses.sigmoid_cross_entropy(tf.zeros_like(Dgz), Dgz)
+				SAME AS 
+	-tf.reduce_mean(tf.log(1 - tf.nn.sigmoid(Dgz)))
+				SAME AS
+			E[log(1 - D(G(z)))]
