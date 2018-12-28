@@ -22,6 +22,9 @@ class Generation:
 	def get_parents(self):
 		return self._parents
 
+	def get_parent(self):
+		return self.get_parents()[0]
+
 	def get_num_parents(self):
 		return self._num_parents
 

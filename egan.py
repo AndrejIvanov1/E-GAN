@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import fitness
 import numpy as np
+from utils import generate_and_save_images
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 num_examples_to_generate = 16
 random_vector_for_generation = tf.random_normal([16, 100])
@@ -21,11 +22,14 @@ class EGAN:
 		#train_step = tf.contrib.eager.defun(self.train_step)
 		self._batch_size = batch_size
 		self._noise_dim = noise_dim
+
+		noise_for_display_images = noise = tf.random_normal([16, self._noise_dim])
 		for epoch in range(epochs):
 			start_time = time.time()
 			# self.generate_and_save_images(self._generation.get_parents()[0].get_model(), epoch, random_vector_for_generation)
 			iterator = dataset.make_one_shot_iterator()
 			self.train_step(iterator)
+			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
 
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
@@ -68,6 +72,7 @@ class EGAN:
 					Gz = child.generate_images(z, training=True)
 					DGz = self._discriminator.discriminate_images(Gz)
 					child_loss = mutation(DGz)
+					print(mutation.__name__, child_loss)
 
 					gradients_of_child = gen_tape.gradient(child_loss, child.variables())
 					child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
@@ -90,26 +95,8 @@ class EGAN:
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
 		self._generation.new_generation(new_parents)
 
-		print(new_parents)
-
 		# Works only with arrays of tensors ??
 		#print(tf.map_fn(lambda child: fitness.total_score(Dx, self._calc_DGz(child, z)), np.array(fintesses)))
-
-
-
-	# NEEDS TO BE MOVED TO ITS OWN MODULE
-	def generate_and_save_images(self, model, epoch, test_input):
-		predictions = model(test_input, training=False)
-
-		fig = plt.figure(figsize=(4,4))
-		  
-		for i in range(predictions.shape[0]):
-		    plt.subplot(4, 4, i+1)
-		    plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
-		    plt.axis('off')
-		        
-		plt.savefig('image_at_epoch_{:04d}.png'.format(epoch))
-		plt.show()
 
 	def _calc_DGz(self, generator, z):
 		Gz = generator.generate_images(z, training=True)

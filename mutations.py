@@ -20,9 +20,8 @@ def minimax_mutation(Dgz):
 # L(G) = E[(D(G(z)) - 1)^2]
 def least_square_mutation(Dgz):
 
-	Dgz = tf.nn.sigmoid(Dgz)
 	# loss = tf.reduce_mean((Dgz - 1.0) * (Dgz - 1.0))
-	loss1 = tf.losses.mean_squared_error(tf.ones_like(Dgz), Dgz)
+	Dgz = tf.nn.sigmoid(Dgz)
+	loss = tf.losses.mean_squared_error(tf.ones_like(Dgz), Dgz)
 
-	print(loss, loss1)
 	return loss
