@@ -24,8 +24,8 @@ class Discriminator:
 		model.add(tf.keras.layers.Dropout(0.3))
 		   
 		model.add(tf.keras.layers.Flatten())
-		# Remove sigmoid activation ?????????????
-		model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+		
+		model.add(tf.keras.layers.Dense(1))
 	 
 		return model
 
