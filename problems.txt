@@ -1,1 +1,9 @@
+Problems: 
 1) Discriminator returns values -1 to 1 instead of 0 to 1
+
+Tasks:
+1) Visualise discriminator in tensorboard
+
+
+Future tasks:
+1) Parallelize children operations in EGAN
