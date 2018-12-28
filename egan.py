@@ -1,6 +1,6 @@
 import tensorflow as tf
 tf.enable_eager_execution()
-from mutations import heuristic_mutation
+from mutations import heuristic_mutation, minimax_mutation, least_square_mutation
 import time
 import os
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ class EGAN:
 			real_images = dataset_iterator.get_next()
 			self.disc_train_step(real_images)
 
-		children = self.gen_train_step(mutations=[heuristic_mutation])
+		children = self.gen_train_step(mutations=[heuristic_mutation, minimax_mutation, least_square_mutation])
 
 		self.selection(children, real_images)
 
