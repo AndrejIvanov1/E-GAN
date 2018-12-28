@@ -2,10 +2,8 @@ import tensorflow as tf
 tf.enable_eager_execution()
 
 def quality_score(Dx, DGz):
-	print("Calculating quality score with GGz.shape={}".format(DGz.shape))
-
-	print("Quality score", DGz)
-	return 0
+	score = tf.reduce_mean(tf.log(DGz))
+	return score
 
 def diversity_score(Dx, DGz):
 	return 0
