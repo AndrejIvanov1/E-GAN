@@ -9,13 +9,13 @@ import numpy as np
 from utils import generate_and_save_images
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 num_examples_to_generate = 16
-random_vector_for_generation = tf.random_normal([16, 100])
+random_vector_for_generation = tf.random_normal([num_examples_to_generate, 100])
 
 class EGAN:
-	def __init__(self, discriminator, generation):
+	def __init__(self, discriminator, generation, discriminator_update_steps=2):
 		self._discriminator = discriminator
 		self._generation = generation
-		self._discriminator_update_steps = 1
+		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = 0.0
 
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
@@ -23,20 +23,18 @@ class EGAN:
 		self._batch_size = batch_size
 		self._noise_dim = noise_dim
 
-		noise_for_display_images = noise = tf.random_normal([16, self._noise_dim])
+		noise_for_display_images = noise = tf.random_normal([num_examples_to_generate, self._noise_dim])
 		for epoch in range(epochs):
 			start_time = time.time()
-			# self.generate_and_save_images(self._generation.get_parents()[0].get_model(), epoch, random_vector_for_generation)
-			iterator = dataset.make_one_shot_iterator()
-			self.train_step(iterator)
-			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
+			for real_batch in dataset:
+				self.train_step(real_batch)
 
+			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
-	def train_step(self, dataset_iterator):
-		real_images = None
-		for step in range(self._discriminator_update_steps):
-			real_images = dataset_iterator.get_next()
+	def train_step(self, real_batch):
+		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
+		for real_images in real_batch:
 			self.disc_train_step(real_images)
 
 		children = self.gen_train_step(mutations=[heuristic_mutation, minimax_mutation, least_square_mutation])
@@ -72,7 +70,7 @@ class EGAN:
 					Gz = child.generate_images(z, training=True)
 					DGz = self._discriminator.discriminate_images(Gz)
 					child_loss = mutation(DGz)
-					print(mutation.__name__, child_loss)
+					#print(mutation.__name__, child_loss)
 
 					gradients_of_child = gen_tape.gradient(child_loss, child.variables())
 					child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
@@ -92,6 +90,7 @@ class EGAN:
 
 			fitnesses.append(fitness.total_score(Dx, DGz, gamma=0.0))
 
+		print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
 		self._generation.new_generation(new_parents)
 

@@ -2,13 +2,15 @@ import tensorflow as tf
 tf.enable_eager_execution()
 
 def quality_score(Dx, DGz):
+	DGz = tf.nn.sigmoid(DGz)
 	score = tf.reduce_mean(tf.log(DGz))
+
 	return score
 
 def diversity_score(Dx, DGz):
-	return 0
+	return 1
 
-def total_score(Dx, DGz, gamma=0.2):
+def total_score(Dx, DGz, gamma=0.0):
 	return (1 - gamma) * quality_score(Dx, DGz) + \
 			gamma      * diversity_score(Dx, DGz)
 

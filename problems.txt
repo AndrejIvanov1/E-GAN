@@ -1,5 +1,5 @@
 Problems: 
-1) Discriminator returns values -1 to 1 instead of 0 to 1
+1) Dataset iterator is not meant to be called in every iteration
 2) Discriminator activation function ? Nothing vs softmax vs sigmoid
 
 

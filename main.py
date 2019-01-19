@@ -9,8 +9,10 @@ import os
 num_epochs = 1
 noise_dim = 100
 generator_batch_size = 16
+discriminator_train_steps = 2
 BUFFER_SIZE = 60000
 BATCH_SIZE = 256
+
 
 def train(dataset, epochs):
 	generation = Generation(num_parents=1, num_children=3)
@@ -33,7 +35,7 @@ if __name__ == '__main__':
 	test_images = (test_images - 127.5) / 127.5
 
 	print(train_images.shape, train_labels.shape)
-	train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
+	train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE * discriminator_train_steps)
 
 	train(train_dataset, num_epochs)
 
