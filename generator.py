@@ -48,11 +48,21 @@ class Generator:
 	def variables(self):
 		return self.get_model().variables	
 
-	def clone(self):
+	def set_mutation(self, mutation):
+		self._mutation = mutation
+
+	# Name of origin mutation(used only for debugging)
+	def mutation(self):
+		return self._mutation
+
+	def clone(self, mutation='None'):
 		model_clone = tf.keras.models.clone_model(self._model)
 		model_clone.set_weights(self.get_weights())
 
-		return Generator(model=model_clone)
+		new_generator = Generator(model=model_clone)
+		new_generator.set_mutation(mutation)
+
+		return new_generator
 
 	def generate_images(self, noise, training=False):
 		return self.get_model()(noise, training=training)

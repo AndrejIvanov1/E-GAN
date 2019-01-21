@@ -51,7 +51,7 @@ class EGAN:
 			real_output = self._discriminator.discriminate_images(real_images)
 			generated_output = self._discriminator.discriminate_images(generated_images)
 
-			assert real_output.shape == generated_output.shape == (self._batch_size, 1)
+			assert real_output.shape == generated_output.shape
 
 			disc_loss = self._discriminator.loss(real_output, generated_output)
 
@@ -66,7 +66,7 @@ class EGAN:
 			children = []
 			for mutation in mutations:
 				with tf.GradientTape() as gen_tape:
-					child = parent.clone()
+					child = parent.clone(mutation=mutation.__name__)
 					Gz = child.generate_images(z, training=True)
 					DGz = self._discriminator.discriminate_images(Gz)
 					child_loss = mutation(DGz)
@@ -90,8 +90,9 @@ class EGAN:
 
 			fitnesses.append(fitness.total_score(Dx, DGz, gamma=0.0))
 
-		print(fitnesses)
+		#print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
+		print("New generation: ", [parent.mutation() for parent in new_parents])
 		self._generation.new_generation(new_parents)
 
 		# Works only with arrays of tensors ??
