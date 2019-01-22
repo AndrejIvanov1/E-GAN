@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 def generate_and_save_images(generator, epoch, test_input):
 	if not os.path.exists('images'):
@@ -15,3 +16,8 @@ def generate_and_save_images(generator, epoch, test_input):
 	        
 	plt.savefig('images/image_at_epoch_{:04d}.png'.format(epoch))
 	plt.show()
+
+ 
+ # Flattens a list of tensors(do not need to be of the same shape)
+def flatten(tensor_list):
+	return tf.concat([tf.reshape(tensor, [-1]) for tensor in tensor_list], axis=0)

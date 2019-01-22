@@ -1,6 +1,7 @@
 Problems: 
-1) Dataset iterator is not meant to be called in every iteration
-2) Discriminator activation function ? Nothing vs softmax vs sigmoid
+- Losses do not decrease, fitness decreases
+- Some calculations done many times, can be repeated ??
+- Deal with last batch with difference size
 
 
 Tasks:
@@ -17,11 +18,11 @@ tf.losses.sigmoid_cross_entropy(tf.ones_like(Dgz), Dgz)
 				 SAME AS
 -tf.reduce_mean(tf.log(tf.nn.sigmoid(Dgz)))
 				 SAME AS
-		    E[log(Dgz)]
+		    -E[log(Dgz)]
 
 
 tf.losses.sigmoid_cross_entropy(tf.zeros_like(Dgz), Dgz)
 				SAME AS 
 	-tf.reduce_mean(tf.log(1 - tf.nn.sigmoid(Dgz)))
 				SAME AS
-			E[log(1 - D(G(z)))]
+			-E[log(1 - D(G(z)))]

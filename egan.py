@@ -19,16 +19,24 @@ class EGAN:
 		self._gamma = 0.0
 
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
-		#train_step = tf.contrib.eager.defun(self.train_step)
+		train_step = tf.contrib.eager.defun(self.train_step)
 		self._batch_size = batch_size
 		self._noise_dim = noise_dim
 
 		noise_for_display_images = noise = tf.random_normal([num_examples_to_generate, self._noise_dim])
 		for epoch in range(epochs):
 			start_time = time.time()
+			counter = 0
 			for real_batch in dataset:
 				self.train_step(real_batch)
+				if counter % 10 == 0:
+					print("{} batched done".format(counter)) 
+				if counter % 10 == 0:
+					print("Displaying images")
+					generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
+				counter += 1
 
+			print("End of epoch, displaying images")
 			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
@@ -39,7 +47,7 @@ class EGAN:
 
 		children = self.gen_train_step(mutations=[heuristic_mutation, minimax_mutation, least_square_mutation])
 
-		self.selection(children, real_images)
+		self.selection(children, real_batch[0])
 
 
 
@@ -51,7 +59,9 @@ class EGAN:
 			real_output = self._discriminator.discriminate_images(real_images)
 			generated_output = self._discriminator.discriminate_images(generated_images)
 
-			assert real_output.shape == generated_output.shape
+			if real_output.shape != generated_output.shape:
+				print("D real output shape: {} does not match D generated output shape: {}".format(real_output.shape, generated_output.shape))
+				return
 
 			disc_loss = self._discriminator.loss(real_output, generated_output)
 
@@ -80,19 +90,17 @@ class EGAN:
 			return children
 
 	def selection(self, children, real_images):
-		Dx = self._discriminator.discriminate_images(real_images)
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 
 		# TODO: MAKE IT PARALLEL
 		fitnesses = []
 		for child in children:
-			DGz = self._calc_DGz(child, z)
-
-			fitnesses.append(fitness.total_score(Dx, DGz, gamma=0.0))
+			Gz = child.generate_images(z, training=True)
+			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=0.0))
 
 		#print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
-		print("New generation: ", [parent.mutation() for parent in new_parents])
+		#print("New generation: ", [parent.mutation() for parent in new_parents])
 		self._generation.new_generation(new_parents)
 
 		# Works only with arrays of tensors ??

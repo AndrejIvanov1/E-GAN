@@ -36,6 +36,7 @@ class Discriminator:
 		return self.get_model()(images, training=True)
 
 
+	# -E[log(D(x))] - E[log(1 - D(G(z)))]
 	def loss(self, real_output, generated_output):
 		real_loss = tf.losses.sigmoid_cross_entropy( \
 			multi_class_labels=tf.ones_like(real_output), logits=real_output)
