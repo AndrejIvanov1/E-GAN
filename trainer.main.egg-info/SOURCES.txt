@@ -1,0 +1,14 @@
+README.md
+setup.py
+trainer/__init__.py
+trainer/discriminator.py
+trainer/egan.py
+trainer/fitness.py
+trainer/generation.py
+trainer/generator.py
+trainer/mutations.py
+trainer/utils.py
+trainer.main.egg-info/PKG-INFO
+trainer.main.egg-info/SOURCES.txt
+trainer.main.egg-info/dependency_links.txt
+trainer.main.egg-info/top_level.txt

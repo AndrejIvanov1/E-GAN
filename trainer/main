@@ -1,9 +1,9 @@
+from trainer.generator import Generator
+from trainer.discriminator import Discriminator
+from trainer.generation import Generation
+from trainer.egan import EGAN
+
 import tensorflow as tf
-tf.enable_eager_execution()
-from generator import Generator
-from discriminator import Discriminator
-from generation import Generation
-from egan import EGAN
 import os
 
 num_epochs = 6
