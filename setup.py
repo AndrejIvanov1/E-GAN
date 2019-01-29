@@ -4,7 +4,7 @@ from setuptools import setup
 REQUIRED_PACKAGES = ['tensorflow', 'numpy', 'h5py'] 
 
 setup(
-	name='trainer.main',
+	name='trainer',
 	version='0.1',
 	author='Andrej Ivanov',
 	author_email='ivandrej@gmail.com',

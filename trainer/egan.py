@@ -1,5 +1,5 @@
 from   trainer.mutations import heuristic_mutation, minimax_mutation, least_square_mutation
-import trainer.fitness
+import trainer.fitness as fitness
 from   trainer.utils import generate_and_save_images
 
 import tensorflow as tf
