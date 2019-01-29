@@ -18,6 +18,8 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = 0.0
 
+		self._checkpoint_save_path = "checkpoints/egan"
+
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
 		train_step = tf.contrib.eager.defun(self.train_step)
 		self._batch_size = batch_size
@@ -30,13 +32,16 @@ class EGAN:
 			for real_batch in dataset:
 				self.train_step(real_batch)
 				if counter % 10 == 0:
-					print("{} batched done".format(counter)) 
+					pass
+					#print("{} batched done".format(counter)) 
 				if counter % 10 == 0:
-					print("Displaying images")
-					generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
+					pass
+					#print("Displaying images")
+					#generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
 				counter += 1
+				break
 
-			print("End of epoch, displaying images")
+			self.save_models()
 			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
@@ -64,6 +69,7 @@ class EGAN:
 				return
 
 			disc_loss = self._discriminator.loss(real_output, generated_output)
+			print("Discriminator loss: ", disc_loss.numpy())
 
 			gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 			self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
@@ -96,7 +102,7 @@ class EGAN:
 		fitnesses = []
 		for child in children:
 			Gz = child.generate_images(z, training=True)
-			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=0.0))
+			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=0.2))
 
 		#print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
@@ -109,3 +115,8 @@ class EGAN:
 	def _calc_DGz(self, generator, z):
 		Gz = generator.generate_images(z, training=True)
 		return self._discriminator.discriminate_images(Gz)
+
+
+	def save_models(self):
+		tf.keras.models.save_model(self._discriminator.get_model(), os.path.join(self._checkpoint_save_path, 'discriminator.h5'))
+		tf.keras.models.save_model(self._generation.get_parent().get_model(), os.path.join(self._checkpoint_save_path, 'generator.h5'))

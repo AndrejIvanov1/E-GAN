@@ -5,3 +5,5 @@ data/*
 __pycache__/
 stuff/
 images
+good_samples
+checkpoints

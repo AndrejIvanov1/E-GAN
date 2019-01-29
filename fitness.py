@@ -6,15 +6,17 @@ from utils import flatten
 def quality_score(Dx, DGz):
 	DGz = tf.nn.sigmoid(DGz)
 	score = tf.reduce_mean(tf.log(DGz))
+	print("Quality: ", score.numpy())
 
 	return score
 
 def diversity_score(gradients):
 	gradients = flatten(gradients)
-	print(gradients.shape)
-	return 1
+	score = -tf.log(tf.norm(gradients))
+	print("Diversity: ", score.numpy())
+	return score
 
-def total_score(discriminator, x, Gz, gamma=0.0):
+def total_score(discriminator, x, Gz, gamma=0.15):
 
 	with tf.GradientTape() as disc_tape:
 		Dx = discriminator.discriminate_images(x)
@@ -25,7 +27,7 @@ def total_score(discriminator, x, Gz, gamma=0.0):
 
 	score = (1 - gamma) * quality_score(Dx, DGz) + \
 			gamma       * diversity_score(gradients)
-	#print("Fitness score: ", score.numpy())
+	print("Total score: ", score.numpy())
 
 	return score
 

@@ -15,7 +15,7 @@ def generate_and_save_images(generator, epoch, test_input):
 	    plt.axis('off')
 	        
 	plt.savefig('images/image_at_epoch_{:04d}.png'.format(epoch))
-	plt.show()
+	#plt.show()
 
  
  # Flattens a list of tensors(do not need to be of the same shape)

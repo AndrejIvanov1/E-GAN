@@ -45,5 +45,4 @@ class Discriminator:
 			multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
 
 		total_loss = real_loss + generated_loss
-		print("Discriminator loss: ", total_loss.numpy())
 		return total_loss

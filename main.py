@@ -6,7 +6,7 @@ from generation import Generation
 from egan import EGAN
 import os
 
-num_epochs = 1
+num_epochs = 6
 noise_dim = 100
 generator_batch_size = 16
 discriminator_train_steps = 2
@@ -20,7 +20,7 @@ def train(dataset, epochs):
 
 	discriminator = Discriminator()
 	
-	gan = EGAN(discriminator, generation)
+	gan = EGAN(discriminator, generation, discriminator_update_steps=discriminator_train_steps)
 	gan.train(dataset, epochs, batch_size=BATCH_SIZE, noise_dim=100)
 
 if __name__ == '__main__':
