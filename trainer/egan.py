@@ -20,7 +20,7 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = 0.0
 
-		self._checkpoint_save_path = "../checkpoints/egan"
+		self._checkpoint_save_path = os.path.join("checkpoints", "egan")
 
 	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
 		#train_step = tf.contrib.eager.defun(self.train_step)

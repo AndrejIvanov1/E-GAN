@@ -26,6 +26,8 @@ def train(dataset, epochs):
 if __name__ == '__main__':
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+	print("Running on {}".format(os.name))
+
 	(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
 	train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
