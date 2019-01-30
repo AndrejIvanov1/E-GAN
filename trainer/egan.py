@@ -1,6 +1,6 @@
 from   trainer.mutations import heuristic_mutation, minimax_mutation, least_square_mutation
 import trainer.fitness as fitness
-from   trainer.utils import generate_and_save_images
+from   trainer.utils import generate_and_save_images, upload_file_to_cloud 
 
 import tensorflow as tf
 import time
@@ -127,5 +127,9 @@ class EGAN:
 
 
 	def save_models(self):
-		tf.keras.models.save_model(self._discriminator.get_model(), os.path.join(self._checkpoint_save_path, 'discriminator.h5'))
-		tf.keras.models.save_model(self._generation.get_parent().get_model(), os.path.join(self._checkpoint_save_path, 'generator.h5'))
+		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
+		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
+		tf.keras.models.save_model(self._discriminator.get_model(), discriminator_path)
+		tf.keras.models.save_model(self._generation.get_parent().get_model(), generator_path)
+		upload_file_to_cloud(discriminator_path)
+		upload_file_to_cloud(generator_path)
