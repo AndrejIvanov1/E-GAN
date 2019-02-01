@@ -8,6 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+print("tf version: ", tf.__version__)
 tf.enable_eager_execution()
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 num_examples_to_generate = 16
@@ -41,8 +42,6 @@ class EGAN:
 					#print("Displaying images")
 					#generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
 				counter += 1
-				break
-				
 
 			self.save_models()
 			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)

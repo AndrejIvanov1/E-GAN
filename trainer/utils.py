@@ -2,8 +2,10 @@ import os
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from google.cloud import storage
+from google.auth import compute_engine
 
 BUCKET_NAME = "gan_datasets"
+PROJECT_ID = "e-gan-225521"
 
 def generate_and_save_images(generator, epoch, test_input):
 	if not os.path.exists('images'):
@@ -35,12 +37,13 @@ def upload_file_to_cloud(source_file_name):
 
 
 def _upload_blob(bucket_name, source_file_name, destination_blob_name):
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
+	credentials = compute_engine.Credentials()
+	storage_client = storage.Client(project=PROJECT_ID)
+	bucket = storage_client.get_bucket(bucket_name)
+	blob = bucket.blob(destination_blob_name)
 
-    blob.upload_from_filename(source_file_name)
+	blob.upload_from_filename(source_file_name)
 
-    print('File {} uploaded to {}.'.format(
-        source_file_name,
-        destination_blob_name)) 
+	print('File {} uploaded to {}.'.format(
+	    source_file_name,
+	    destination_blob_name)) 

@@ -12,7 +12,7 @@ generator_batch_size = 16
 discriminator_train_steps = 2
 BUFFER_SIZE = 60000
 BATCH_SIZE = 256
-
+credentials_path = r'C:\Users\user\key.json'
 
 def train(dataset, epochs):
 	generation = Generation(num_parents=1, num_children=3)
@@ -23,8 +23,16 @@ def train(dataset, epochs):
 	gan = EGAN(discriminator, generation, discriminator_update_steps=discriminator_train_steps)
 	gan.train(dataset, epochs, batch_size=BATCH_SIZE, noise_dim=100)
 
+def cloud_setup():
+	checkpoints_path = os.path.join("checkpoints", "egan")
+	if not os.path.exists(checkpoints_path):
+		os.makedirs(checkpoints_path)
+
+
 if __name__ == '__main__':
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+	if os.path.exists(credentials_path):
+		os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 
 	print("Running on {}".format(os.name))
 
@@ -39,5 +47,6 @@ if __name__ == '__main__':
 	print(train_images.shape, train_labels.shape)
 	train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE * discriminator_train_steps)
 
+	cloud_setup()
 	train(train_dataset, num_epochs)
 

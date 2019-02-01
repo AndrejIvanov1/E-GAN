@@ -1,7 +1,5 @@
 from trainer.generator import Generator
 import tensorflow as tf
-tf.enable_eager_execution()
-
 
 class Generation:
 
