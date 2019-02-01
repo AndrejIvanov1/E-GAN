@@ -1,3 +1,13 @@
+"""Run a training job on Cloud ML Engine to train a GAN.
+Usage:
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>]
+
+Options:
+  -h --help     Show this screen.
+  --batch-size <batch-size>  Integer value indiciating batch size [default: 256]
+  --disc-train-steps <disc-train-steps> Discriminator train steps [default: 2]
+"""
+from docopt import docopt
 from trainer.generator import Generator
 from trainer.discriminator import Discriminator
 from trainer.generation import Generation
@@ -13,6 +23,7 @@ discriminator_train_steps = 2
 BUFFER_SIZE = 60000
 BATCH_SIZE = 256
 credentials_path = r'C:\Users\user\key.json'
+network_type = 'EGAN'
 
 def train(dataset, epochs):	
 	gan = EGAN(num_parents=1, \
@@ -27,10 +38,20 @@ def cloud_setup():
 		os.makedirs(checkpoints_path)
 
 
-if __name__ == '__main__':
+def local_setup():
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 	if os.path.exists(credentials_path):
 		os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+
+if __name__ == '__main__':
+	arguments = docopt(__doc__)
+	print("Arguments: ", arguments)
+
+	network_type = arguments['<network-type>']
+	discriminator_train_steps = int(arguments['--disc-train-steps'])
+	BATCH_SIZE = int(arguments['--batch-size'])
+
+	print(network_type, BATCH_SIZE, discriminator_train_steps)
 
 	print("Running on {}".format(os.name))
 
@@ -45,6 +66,7 @@ if __name__ == '__main__':
 	print(train_images.shape, train_labels.shape)
 	train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE * discriminator_train_steps)
 
+	local_setup()
 	cloud_setup()
 	train(train_dataset, num_epochs)
 
