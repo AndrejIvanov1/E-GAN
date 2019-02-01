@@ -30,3 +30,6 @@ tf.losses.sigmoid_cross_entropy(tf.zeros_like(Dgz), Dgz)
 
 
 set GOOGLE_APPLICATION_CREDENTIALS=C:\Users\user\key.json
+
+
+MOVE APPLYING GRADIENTS FROM TAPE
