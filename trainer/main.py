@@ -1,6 +1,6 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>]
+  trainer.main --job-dir <job-dir> --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>]
 
 Options:
   -h --help     Show this screen.
@@ -24,16 +24,21 @@ BUFFER_SIZE = 60000
 BATCH_SIZE = 256
 credentials_path = r'C:\Users\user\key.json'
 network_type = 'EGAN'
+JOB_DIR = '.'
 
-def train(dataset, epochs):	
-	gan = EGAN(num_parents=1, \
-			   num_children=3, \
-			   noise_dim=100, \
-			   discriminator_update_steps=discriminator_train_steps)
-	gan.train(dataset, epochs, batch_size=BATCH_SIZE)
+def train(dataset, epochs):
+	if network_type == 'EGAN':
+		gan = EGAN(num_parents=1, \
+				   num_children=3, \
+				   noise_dim=100, \
+				   discriminator_update_steps=discriminator_train_steps)
+	else:
+		print("DCGAN")
+		return
+	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE)
 
 def cloud_setup():
-	checkpoints_path = os.path.join("checkpoints", "egan")
+	checkpoints_path = os.path.join(JOB_DIR, "checkpoints", "egan")
 	if not os.path.exists(checkpoints_path):
 		os.makedirs(checkpoints_path)
 
@@ -47,6 +52,7 @@ if __name__ == '__main__':
 	arguments = docopt(__doc__)
 	print("Arguments: ", arguments)
 
+	JOB_DIR = arguments['<job-dir>']
 	network_type = arguments['<network-type>']
 	discriminator_train_steps = int(arguments['--disc-train-steps'])
 	BATCH_SIZE = int(arguments['--batch-size'])

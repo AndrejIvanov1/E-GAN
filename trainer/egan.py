@@ -27,10 +27,10 @@ class EGAN:
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
-		self._checkpoint_save_path = os.path.join("checkpoints", "egan")
 
-	def train(self, dataset, epochs, batch_size=256):
+	def train(self, dataset, epochs, job_dir, batch_size=256):
 		#train_step = tf.contrib.eager.defun(self.train_step)
+		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints", "egan")
 		self._batch_size = batch_size
 
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
@@ -50,7 +50,10 @@ class EGAN:
 				break
 
 			self.save_models()
-			generate_and_save_images(self._generation.get_parent(), epoch, self._random_vector_for_generation)
+			generate_and_save_images(self._generation.get_parent(), \
+								     epoch, \
+								     self._random_vector_for_generation,
+								     job_dir)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
 	def train_step(self, real_batch):

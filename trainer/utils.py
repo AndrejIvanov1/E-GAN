@@ -7,9 +7,10 @@ from google.auth import compute_engine
 BUCKET_NAME = "gan_datasets"
 PROJECT_ID = "e-gan-225521"
 
-def generate_and_save_images(generator, epoch, test_input):
-	if not os.path.exists('images'):
-		os.mkdir('images')
+def generate_and_save_images(generator, epoch, test_input, job_dir):
+	dir_path = os.path.join(job_dir, 'images')
+	if not os.path.exists(dir_path):
+		os.makedirs(dir_path)
 	predictions = generator.generate_images(test_input, training=False)
 
 	fig = plt.figure(figsize=(4,4))
@@ -19,7 +20,7 @@ def generate_and_save_images(generator, epoch, test_input):
 	    plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
 	    plt.axis('off')
 	    
-	file_path =  'images/image_at_epoch_{:04d}.png'.format(epoch)   
+	file_path =  job_dir + '/images/image_at_epoch_{:04d}.png'.format(epoch)   
 	plt.savefig(file_path)
 	upload_file_to_cloud(file_path)
 
