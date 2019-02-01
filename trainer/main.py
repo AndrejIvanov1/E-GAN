@@ -12,6 +12,7 @@ from trainer.generator import Generator
 from trainer.discriminator import Discriminator
 from trainer.generation import Generation
 from trainer.egan import EGAN
+from trainer.dcgan import DCGAN
 
 import tensorflow as tf
 import os
@@ -33,8 +34,8 @@ def train(dataset, epochs):
 				   noise_dim=100, \
 				   discriminator_update_steps=discriminator_train_steps)
 	else:
-		print("DCGAN")
-		return
+		gan = DCGAN(noise_dim=noise_dim, discriminator_update_steps=discriminator_train_steps)
+		
 	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE)
 
 def cloud_setup():

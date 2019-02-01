@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-REQUIRED_PACKAGES = ['tensorflow>=1.12', 'numpy', 'h5py', 'matplotlib'] 
+REQUIRED_PACKAGES = ['tensorflow>=1.12', 'numpy', 'h5py', 'matplotlib', 'docopts'] 
 
 setup(
 	name='trainer',

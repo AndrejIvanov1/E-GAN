@@ -2,6 +2,8 @@ from  trainer.utils import generate_and_save_images, upload_file_to_cloud
 from  trainer.generator import Generator
 from  trainer.discriminator import Discriminator
 
+import tensorflow as tf
+import os
 import time
 
 class DCGAN:
@@ -55,9 +57,20 @@ class DCGAN:
 		start_time = time.time()
 		self.gen_train_step()
 		print("Gen train step: ", time.time() - start_time)
-		start_time = time.time()
+		
 
+	def gen_train_step(self):
+		with tf.GradientTape() as gen_tape:
+			z = tf.random_normal([self._batch_size, self._noise_dim])
+			Gz = self._generator.generate_images(z)
+			DGz = self._discriminator.discriminate_images(Gz)
+			gen_loss = self._generator.loss(DGz)
 
+		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
+		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
+	
+
+			
 	def disc_train_step(self, real_images):
 		noise = tf.random_normal([self._batch_size, self._noise_dim])
 		generated_images = self._generator.generate_images(noise)
@@ -73,14 +86,14 @@ class DCGAN:
 			disc_loss = self._discriminator.loss(real_output, generated_output)
 			print("Discriminator loss: ", disc_loss.numpy())
 
-			gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
-			self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
+		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
+		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
 
 
 	def save_models(self):
 		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
 		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
 		tf.keras.models.save_model(self._discriminator.get_model(), discriminator_path)
-		tf.keras.models.save_model(self._generation.get_parent().get_model(), generator_path)
+		tf.keras.models.save_model(self._generator.get_model(), generator_path)
 		upload_file_to_cloud(discriminator_path)
 		upload_file_to_cloud(generator_path)

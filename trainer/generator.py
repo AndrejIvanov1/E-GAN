@@ -65,3 +65,6 @@ class Generator:
 
 	def generate_images(self, noise, training=False):
 		return self.get_model()(noise, training=training)
+
+	def loss(self, Dgz):
+		return tf.losses.sigmoid_cross_entropy(tf.ones_like(Dgz), Dgz)
