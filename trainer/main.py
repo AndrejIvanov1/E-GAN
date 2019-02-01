@@ -14,14 +14,12 @@ BUFFER_SIZE = 60000
 BATCH_SIZE = 256
 credentials_path = r'C:\Users\user\key.json'
 
-def train(dataset, epochs):
-	generation = Generation(num_parents=1, num_children=3)
-	generation.initialize(noise_dim=100)
-
-	discriminator = Discriminator()
-	
-	gan = EGAN(discriminator, generation, discriminator_update_steps=discriminator_train_steps)
-	gan.train(dataset, epochs, batch_size=BATCH_SIZE, noise_dim=100)
+def train(dataset, epochs):	
+	gan = EGAN(num_parents=1, \
+			   num_children=3, \
+			   noise_dim=100, \
+			   discriminator_update_steps=discriminator_train_steps)
+	gan.train(dataset, epochs, batch_size=BATCH_SIZE)
 
 def cloud_setup():
 	checkpoints_path = os.path.join("checkpoints", "egan")

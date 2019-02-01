@@ -1,6 +1,9 @@
 from   trainer.mutations import heuristic_mutation, minimax_mutation, least_square_mutation
 import trainer.fitness as fitness
 from   trainer.utils import generate_and_save_images, upload_file_to_cloud 
+from   trainer.generator import Generator
+from   trainer.discriminator import Discriminator
+from   trainer.generation import Generation
 
 import tensorflow as tf
 import time
@@ -11,24 +14,26 @@ import numpy as np
 print("tf version: ", tf.__version__)
 tf.enable_eager_execution()
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-num_examples_to_generate = 16
-random_vector_for_generation = tf.random_normal([num_examples_to_generate, 100])
 
 class EGAN:
-	def __init__(self, discriminator, generation, discriminator_update_steps=2):
-		self._discriminator = discriminator
-		self._generation = generation
-		self._discriminator_update_steps = discriminator_update_steps
-		self._gamma = 0.0
-
-		self._checkpoint_save_path = os.path.join("checkpoints", "egan")
-
-	def train(self, dataset, epochs, batch_size=256, noise_dim=100):
-		#train_step = tf.contrib.eager.defun(self.train_step)
-		self._batch_size = batch_size
+	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.2):
+		self._generation = Generation(num_parents=1, num_children=3)
+		self._generation.initialize(noise_dim=noise_dim)
 		self._noise_dim = noise_dim
 
-		noise_for_display_images = noise = tf.random_normal([num_examples_to_generate, self._noise_dim])
+		self._discriminator = Discriminator()
+		self._discriminator_update_steps = discriminator_update_steps
+		self._gamma = gamma
+
+		self._num_examples_to_generate = 16
+		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
+		self._checkpoint_save_path = os.path.join("checkpoints", "egan")
+
+	def train(self, dataset, epochs, batch_size=256):
+		#train_step = tf.contrib.eager.defun(self.train_step)
+		self._batch_size = batch_size
+
+		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 		for epoch in range(epochs):
 			start_time = time.time()
 			counter = 0
@@ -42,9 +47,10 @@ class EGAN:
 					#print("Displaying images")
 					#generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
 				counter += 1
+				break
 
 			self.save_models()
-			generate_and_save_images(self._generation.get_parent(), epoch, noise_for_display_images)
+			generate_and_save_images(self._generation.get_parent(), epoch, self._random_vector_for_generation)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 
 	def train_step(self, real_batch):
@@ -110,7 +116,7 @@ class EGAN:
 		fitnesses = []
 		for child in children:
 			Gz = child.generate_images(z, training=True)
-			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=0.2))
+			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=self._gamma))
 
 		#print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
