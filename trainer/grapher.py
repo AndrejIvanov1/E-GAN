@@ -20,7 +20,5 @@ class Grapher():
 		file_path = os.path.join(folder_path, self._name)
 		print("File path: ", file_path)
 		plt.savefig(file_path)
-		#plt.show()
-		upload_file_to_cloud(file_path + ".png")
 
-		print("Plotting: ", self._values)
+		upload_file_to_cloud(file_path + ".png")

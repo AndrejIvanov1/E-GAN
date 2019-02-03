@@ -1,6 +1,6 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--job-dir <job-dir>] [--epochs <epochs>]
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--epochs <epochs>] [--job-dir <job-dir>]
 
 Options:
   -h --help     Show this screen.

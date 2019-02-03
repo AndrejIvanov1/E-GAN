@@ -7,4 +7,4 @@ gcloud ml-engine jobs submit training dcgan_50_epochs_GPU ^
  	--runtime-version=1.12 ^
  	--scale-tier=BASIC_GPU ^
  	--region=europe-west1 ^
- 	-- --network-type DCGAN --batch-size 256 --disc-train-steps 2
+ 	-- --network-type DCGAN --batch-size 256 --disc-train-steps 2 --epochs 10
