@@ -1,11 +1,12 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --job-dir <job-dir> --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>]
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--job-dir <job-dir>]
 
 Options:
   -h --help     Show this screen.
   --batch-size <batch-size>  Integer value indiciating batch size [default: 256]
   --disc-train-steps <disc-train-steps> Discriminator train steps [default: 2]
+  --job-dir <job-dir> Job dir [default: '.']
 """
 from docopt import docopt
 from trainer.generator import Generator
@@ -17,7 +18,7 @@ from trainer.dcgan import DCGAN
 import tensorflow as tf
 import os
 
-num_epochs = 50
+num_epochs = 30
 noise_dim = 100
 generator_batch_size = 16
 discriminator_train_steps = 2
@@ -39,7 +40,8 @@ def train(dataset, epochs):
 	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE)
 
 def cloud_setup():
-	checkpoints_path = os.path.join(JOB_DIR, "checkpoints", "egan")
+	checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", network_type.lower())
+	print("Checkpoints path: ", checkpoints_path)
 	if not os.path.exists(checkpoints_path):
 		os.makedirs(checkpoints_path)
 
@@ -53,7 +55,7 @@ if __name__ == '__main__':
 	arguments = docopt(__doc__)
 	print("Arguments: ", arguments)
 
-	JOB_DIR = arguments['<job-dir>']
+	JOB_DIR = arguments['--job-dir']
 	network_type = arguments['<network-type>']
 	discriminator_train_steps = int(arguments['--disc-train-steps'])
 	BATCH_SIZE = int(arguments['--batch-size'])
