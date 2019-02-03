@@ -22,7 +22,7 @@ class DCGAN:
 		self._disc_loss_grapher = Grapher('discriminator_loss')
 		self._gen_loss_grapher = Grapher('generator_loss')
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=10):
+	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=8):
 		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints", "dcgan")
 		self._batch_size = batch_size
 
@@ -33,13 +33,11 @@ class DCGAN:
 			iteration = 0
 			for real_batch in dataset:
 				record_loss = False
-				if iteration % 1 == 0:
+				if iteration % n_iterations_loss_plot == 0:
 					record_loss = True
 
 				self.train_step(real_batch, record_loss=record_loss)
 				iteration += 1
-				if iteration == 4:
-					break
 
 			self.save_models()
 			generate_and_save_images(self._generator, \
@@ -48,7 +46,7 @@ class DCGAN:
 								     job_dir)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 		
-		self.plot_losses(os.path.join(job_dir, "plots"))
+		self.plot_losses(os.path.join(job_dir[18:], "plots"))
 
 
 	def train_step(self, real_batch, record_loss=False):
