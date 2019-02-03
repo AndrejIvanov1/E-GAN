@@ -17,7 +17,7 @@ from trainer.dcgan import DCGAN
 import tensorflow as tf
 import os
 
-num_epochs = 6
+num_epochs = 10
 noise_dim = 100
 generator_batch_size = 16
 discriminator_train_steps = 2
@@ -35,7 +35,7 @@ def train(dataset, epochs):
 				   discriminator_update_steps=discriminator_train_steps)
 	else:
 		gan = DCGAN(noise_dim=noise_dim, discriminator_update_steps=discriminator_train_steps)
-		
+
 	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE)
 
 def cloud_setup():

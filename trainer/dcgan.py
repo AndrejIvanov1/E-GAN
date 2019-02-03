@@ -25,18 +25,9 @@ class DCGAN:
 
 		for epoch in range(epochs):
 			start_time = time.time()
-			counter = 0
+
 			for real_batch in dataset:
 				self.train_step(real_batch)
-				if counter % 10 == 0:
-					pass
-					#print("{} batched done".format(counter)) 
-				if counter % 10 == 0:
-					pass
-					#print("Displaying images")
-					#generate_and_save_images(self._generation.get_parent(), counter, noise_for_display_images)
-				counter += 1
-				break
 
 			self.save_models()
 			generate_and_save_images(self._generator, \
@@ -47,44 +38,51 @@ class DCGAN:
 
 
 	def train_step(self, real_batch):
+		#disc_train_step = tf.contrib.eager.defun(self.disc_train_step)
+		#gen_train_step = tf.contrib.eager.defun(self.disc_train_step)
+
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
-		start_time = time.time()
-		for real_images in real_batch:
-			self.disc_train_step(real_images) 
 
-		print("Discriminator train step time:", time.time() - start_time)
-
-		start_time = time.time()
-		self.gen_train_step()
-		print("Gen train step: ", time.time() - start_time)
-		
-
-	def gen_train_step(self):
 		with tf.GradientTape() as gen_tape:
-			z = tf.random_normal([self._batch_size, self._noise_dim])
-			Gz = self._generator.generate_images(z)
-			DGz = self._discriminator.discriminate_images(Gz)
-			gen_loss = self._generator.loss(DGz)
+			start_time = time.time()
+			DGz = None
+			for x in real_batch:
+				Gz = self._calc_Gz()
+				DGz = self._discriminator.discriminate_images(Gz)
+				self.disc_train_step(x, DGz) 
+
+			print("Discriminator train step time:", time.time() - start_time)
+
+			start_time = time.time()
+			self.gen_train_step(DGz, gen_tape)
+			print("Gen train step: ", time.time() - start_time)
+			
+	def _calc_Gz(self):
+		z = tf.random_normal([self._batch_size, self._noise_dim])
+		Gz = self._generator.generate_images(z)
+		#DGz = self._discriminator.discriminate_images(Gz)
+
+		return Gz
+
+
+	def gen_train_step(self, DGz, gen_tape):
+		gen_loss = self._generator.loss(DGz)
 
 		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
 		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
-	
 
+
+	def disc_train_step(self, x, DGz):
 			
-	def disc_train_step(self, real_images):
-		noise = tf.random_normal([self._batch_size, self._noise_dim])
-		generated_images = self._generator.generate_images(noise)
-
 		with tf.GradientTape() as disc_tape:
-			real_output = self._discriminator.discriminate_images(real_images)
-			generated_output = self._discriminator.discriminate_images(generated_images)
+			Dx = self._discriminator.discriminate_images(x)
 
-			if real_output.shape != generated_output.shape:
-				print("D real output shape: {} does not match D generated output shape: {}".format(real_output.shape, generated_output.shape))
+			if Dx.shape != DGz.shape:
+				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
 				return
-
-			disc_loss = self._discriminator.loss(real_output, generated_output)
-			print("Discriminator loss: ", disc_loss.numpy())
+				
+			disc_loss = self._discriminator.loss(Dx, DGz)
+			# print("Discriminator loss: ", disc_loss.numpy())
 
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
@@ -93,7 +91,10 @@ class DCGAN:
 	def save_models(self):
 		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
 		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
+
 		tf.keras.models.save_model(self._discriminator.get_model(), discriminator_path)
 		tf.keras.models.save_model(self._generator.get_model(), generator_path)
+
 		upload_file_to_cloud(discriminator_path)
 		upload_file_to_cloud(generator_path)
+
