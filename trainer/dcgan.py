@@ -27,7 +27,9 @@ class DCGAN:
 			start_time = time.time()
 
 			for real_batch in dataset:
+				batch_start_time = time.time()
 				self.train_step(real_batch)
+				print("Time for batch: ", time.time() - batch_start_time)
 
 			self.save_models()
 			generate_and_save_images(self._generator, \
@@ -35,7 +37,6 @@ class DCGAN:
 								     self._random_vector_for_generation, \
 								     job_dir)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
-
 
 	def train_step(self, real_batch):
 		#disc_train_step = tf.contrib.eager.defun(self.disc_train_step)
@@ -54,6 +55,8 @@ class DCGAN:
 			print("Discriminator train step time:", time.time() - start_time)
 
 			start_time = time.time()
+			Gz = self._calc_Gz()
+			DGz = self._discriminator.discriminate_images(Gz)
 			self.gen_train_step(DGz, gen_tape)
 			print("Gen train step: ", time.time() - start_time)
 			
@@ -80,7 +83,7 @@ class DCGAN:
 			if Dx.shape != DGz.shape:
 				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
 				return
-				
+
 			disc_loss = self._discriminator.loss(Dx, DGz)
 			# print("Discriminator loss: ", disc_loss.numpy())
 

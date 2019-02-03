@@ -17,7 +17,7 @@ from trainer.dcgan import DCGAN
 import tensorflow as tf
 import os
 
-num_epochs = 10
+num_epochs = 50
 noise_dim = 100
 generator_batch_size = 16
 discriminator_train_steps = 2
