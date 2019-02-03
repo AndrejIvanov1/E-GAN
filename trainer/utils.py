@@ -23,6 +23,9 @@ def generate_and_save_images(generator, epoch, test_input, job_dir):
 	file_path =  job_dir[18:] + '/images/image_at_epoch_{:04d}.png'.format(epoch)   
 	plt.savefig(file_path)
 	upload_file_to_cloud(file_path)
+	plt.clf()
+	plt.cla()
+	plt.close()
 
 	#plt.show()
 

@@ -1,12 +1,13 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--job-dir <job-dir>]
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--job-dir <job-dir>] [--epochs <epochs>]
 
 Options:
   -h --help     Show this screen.
   --batch-size <batch-size>  Integer value indiciating batch size [default: 256]
   --disc-train-steps <disc-train-steps> Discriminator train steps [default: 2]
   --job-dir <job-dir> Job dir [default: '.']
+  --epochs <epochs> [default: 10]
 """
 from docopt import docopt
 from trainer.generator import Generator
@@ -18,7 +19,7 @@ from trainer.dcgan import DCGAN
 import tensorflow as tf
 import os
 
-num_epochs = 2
+num_epochs = 4
 noise_dim = 100
 generator_batch_size = 16
 discriminator_train_steps = 2
@@ -59,10 +60,7 @@ if __name__ == '__main__':
 	network_type = arguments['<network-type>']
 	discriminator_train_steps = int(arguments['--disc-train-steps'])
 	BATCH_SIZE = int(arguments['--batch-size'])
-
-	print(network_type, BATCH_SIZE, discriminator_train_steps)
-
-	print("Running on {}".format(os.name))
+	num_epochs = int(arguments['--epochs'])
 
 	(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
