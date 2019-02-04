@@ -16,6 +16,7 @@ class Grapher():
 		if not os.path.exists(folder_path):
 			os.makedirs(folder_path)
 
+		#print(self._values)
 		plt.plot(self._values)
 		file_path = os.path.join(folder_path, self._name)
 		print("File path: ", file_path)

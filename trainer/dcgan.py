@@ -1,4 +1,4 @@
-from  trainer.utils import generate_and_save_images, upload_file_to_cloud 
+from  trainer.utils import generate_and_save_images, upload_file_to_cloud, download_from_cloud
 from  trainer.generator import Generator
 from  trainer.discriminator import Discriminator
 from trainer.grapher import Grapher
@@ -22,9 +22,13 @@ class DCGAN:
 		self._disc_loss_grapher = Grapher('discriminator_loss')
 		self._gen_loss_grapher = Grapher('generator_loss')
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=8):
+	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=8, restore=False):
 		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints", "dcgan")
 		self._batch_size = batch_size
+
+		if restore:
+			pass 
+			#self._restore_models(job_dir)
 
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 
@@ -32,12 +36,14 @@ class DCGAN:
 			start_time = time.time()
 			iteration = 0
 			for real_batch in dataset:
+				print("Iteration #{}".format(iteration))
 				record_loss = False
 				if iteration % n_iterations_loss_plot == 0:
 					record_loss = True
 
 				self.train_step(real_batch, record_loss=record_loss)
 				iteration += 1
+				break
 
 			self.save_models()
 			generate_and_save_images(self._generator, \
@@ -47,7 +53,6 @@ class DCGAN:
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 		
 		self.plot_losses(os.path.join(job_dir[18:], "plots"))
-
 
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
@@ -70,7 +75,8 @@ class DCGAN:
 			gen_loss = self._generator.loss(DGz)
 
 			if record_loss:
-				self._gen_loss_grapher.record(gen_loss)
+				pass
+				#self._gen_loss_grapher.record(gen_loss.numpy())
 			#print("Gen loss: ", gen_loss.numpy())
 
 		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
@@ -94,7 +100,8 @@ class DCGAN:
 			#print("Discriminator loss: ", disc_loss.numpy())
 
 			if record_loss:
-				self._disc_loss_grapher.record(disc_loss)
+				pass
+				#self._disc_loss_grapher.record(disc_loss.numpy())
 
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
@@ -113,3 +120,23 @@ class DCGAN:
 	def plot_losses(self, folder_path):
 		self._disc_loss_grapher.plot(folder_path)
 		self._gen_loss_grapher.plot(folder_path)
+
+
+	def _restore_models(self, job_dir):
+		local_checkpoint_path = self._checkpoint_save_path[18:]
+		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
+		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
+
+		if not os.listdir(local_checkpoint_path):
+			#os.makedirs(local_checkpoint_path)
+
+			download_from_cloud(discriminator_path)
+			download_from_cloud(generator_path)
+
+		restored_generator_model = tf.keras.models.load_model(generator_path[18:])
+		restored_discriminator_model = tf.keras.models.load_model(discriminator_path[18:])
+
+		self._generator.set_model(restored_generator_model)
+		self._discriminator.set_model(restored_discriminator_model)
+
+		# Need to load epoch too

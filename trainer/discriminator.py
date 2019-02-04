@@ -9,6 +9,9 @@ class Discriminator:
 	def get_model(self):
 		return self._model
 
+	def set_model(self, new_model):
+		self._model = new_model
+
 	def get_optimizer(self):
 		return self._optimizer
 	

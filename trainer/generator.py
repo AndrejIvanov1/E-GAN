@@ -38,6 +38,9 @@ class Generator:
 	def get_model(self):
 		return self._model
 
+	def set_model(self, new_model):
+		self._model = new_model
+		
 	def get_weights(self):
 		return self._model.get_weights()
 

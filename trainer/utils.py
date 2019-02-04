@@ -34,6 +34,21 @@ def generate_and_save_images(generator, epoch, test_input, job_dir):
 def flatten(tensor_list):
 	return tf.concat([tf.reshape(tensor, [-1]) for tensor in tensor_list], axis=0)
 
+def download_from_cloud(source_blob_name):
+	source_blob_name = source_blob_name.replace("\\", "/")
+	# Should be extracted to its own method
+	credentials = compute_engine.Credentials()
+	storage_client = storage.Client(project=PROJECT_ID)
+	bucket = storage_client.get_bucket(BUCKET_NAME)
+	print("Soure blob name: ", source_blob_name)
+	blob = bucket.get_blob(source_blob_name[18:])
+	destination_file_name = source_blob_name[18:]
+	blob.download_to_filename(destination_file_name)
+
+	print('Blob {} downloaded to {}.'.format(
+	    source_blob_name,
+	    destination_file_name))
+
 
 def upload_file_to_cloud(source_file_name):
 	destination_blob_name = source_file_name.replace("\\", "/")
@@ -41,6 +56,7 @@ def upload_file_to_cloud(source_file_name):
 
 
 def _upload_blob(bucket_name, source_file_name, destination_blob_name):
+	# Should be extracted to its own method
 	credentials = compute_engine.Credentials()
 	storage_client = storage.Client(project=PROJECT_ID)
 	bucket = storage_client.get_bucket(bucket_name)

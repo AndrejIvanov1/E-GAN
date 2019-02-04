@@ -1,12 +1,13 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--epochs <epochs>] [--job-dir <job-dir>]
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--epochs <epochs>] [--restore][--job-dir <job-dir>]
 
 Options:
   -h --help     Show this screen.
   --batch-size <batch-size>  Integer value indiciating batch size [default: 256]
   --disc-train-steps <disc-train-steps> Discriminator train steps [default: 2]
   --job-dir <job-dir> Job dir [default: '.']
+  --restore
   --epochs <epochs> [default: 10]
 """
 from docopt import docopt
@@ -28,6 +29,7 @@ BATCH_SIZE = 256
 credentials_path = r'C:\Users\user\key.json'
 network_type = 'EGAN'
 JOB_DIR = '.'
+restore = False
 
 def train(dataset, epochs):
 	if network_type == 'EGAN':
@@ -38,7 +40,7 @@ def train(dataset, epochs):
 	else:
 		gan = DCGAN(noise_dim=noise_dim, discriminator_update_steps=discriminator_train_steps)
 
-	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE)
+	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE, restore=restore)
 
 def cloud_setup():
 	checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", network_type.lower())
@@ -61,6 +63,7 @@ if __name__ == '__main__':
 	discriminator_train_steps = int(arguments['--disc-train-steps'])
 	BATCH_SIZE = int(arguments['--batch-size'])
 	num_epochs = int(arguments['--epochs'])
+	restore = arguments['--restore']
 
 	(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
