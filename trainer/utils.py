@@ -49,6 +49,20 @@ def download_from_cloud(source_blob_name):
 	    source_blob_name,
 	    destination_file_name))
 
+def download_dir_from_cloud(blob_dir):
+	blob_dir = blob_dir.replace("\\", "/")
+	print("Downloading dir: {}".format(blob_dir))
+	bucket = connect_to_cloud_storage()
+	blobs = bucket.list_blobs(prefix=blob_dir)
+
+	for blob in blobs:
+		blob.download_to_filename(blob.name)
+
+def upload_dir_to_cloud(dir_path):
+	print("Uploading dir {} to cloud".format(dir_path))
+	for filename in os.listdir(dir_path):
+		print("Filename", filename)
+		upload_file_to_cloud(os.path.join(dir_path, filename))
 
 def upload_file_to_cloud(source_file_name):
 	destination_blob_name = source_file_name.replace("\\", "/")
@@ -67,3 +81,10 @@ def _upload_blob(bucket_name, source_file_name, destination_blob_name):
 	print('File {} uploaded to {}.'.format(
 	    source_file_name,
 	    destination_blob_name)) 
+
+def connect_to_cloud_storage():
+	credentials = compute_engine.Credentials()
+	storage_client = storage.Client(project=PROJECT_ID)
+	bucket = storage_client.get_bucket(BUCKET_NAME)
+
+	return bucket

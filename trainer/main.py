@@ -43,10 +43,14 @@ def train(dataset, epochs):
 	gan.train(dataset, epochs, job_dir=JOB_DIR, batch_size=BATCH_SIZE, restore=restore)
 
 def cloud_setup():
-	checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", network_type.lower())
-	print("Checkpoints path: ", checkpoints_path)
-	if not os.path.exists(checkpoints_path):
-		os.makedirs(checkpoints_path)
+	discriminator_checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", "discriminator")
+	generator_checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", "generator")
+
+	if not os.path.exists(discriminator_checkpoints_path):
+		os.makedirs(discriminator_checkpoints_path)
+	if not os.path.exists(generator_checkpoints_path):
+		os.makedirs(generator_checkpoints_path)
+
 
 
 def local_setup():

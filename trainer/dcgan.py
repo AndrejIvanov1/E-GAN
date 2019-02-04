@@ -1,4 +1,4 @@
-from  trainer.utils import generate_and_save_images, upload_file_to_cloud, download_from_cloud
+from  trainer.utils import generate_and_save_images, upload_file_to_cloud, download_from_cloud, upload_dir_to_cloud, download_dir_from_cloud
 from  trainer.generator import Generator
 from  trainer.discriminator import Discriminator
 from trainer.grapher import Grapher
@@ -23,12 +23,15 @@ class DCGAN:
 		self._gen_loss_grapher = Grapher('generator_loss')
 
 	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=8, restore=False):
-		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints", "dcgan")
+		self._discriminator_checkpoint_path = os.path.join(job_dir, "checkpoints", "discriminator")
+		self._generator_checkpoint_path = os.path.join(job_dir, "checkpoints", "generator")
+		self._discriminator_checkpoint = tfe.Checkpoint(optimizer=self._discriminator.get_optimizer(), model=self._discriminator.get_model())
+		self._generator_checkpoint = tfe.Checkpoint(optimizer=self._generator.get_optimizer(), model=self._generator.get_model())
+
 		self._batch_size = batch_size
 
 		if restore:
-			pass 
-			#self._restore_models(job_dir)
+			self._restore_models(job_dir)
 
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 
@@ -37,12 +40,14 @@ class DCGAN:
 			iteration = 0
 			for real_batch in dataset:
 				print("Iteration #{}".format(iteration))
+				batch_time = time.time()
 				record_loss = False
 				if iteration % n_iterations_loss_plot == 0:
 					record_loss = True
 
 				self.train_step(real_batch, record_loss=record_loss)
 				iteration += 1
+				print("Batch time: ", time.time() - batch_time)
 				break
 
 			self.save_models()
@@ -52,8 +57,9 @@ class DCGAN:
 								     job_dir)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 		
-		self.plot_losses(os.path.join(job_dir[18:], "plots"))
+		#self.plot_losses(os.path.join(job_dir[18:], "plots"))
 
+	@tf.contrib.eager.defun
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
 		start_time = time.time()
@@ -81,7 +87,6 @@ class DCGAN:
 
 		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
 		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
-	
 
 			
 	def disc_train_step(self, real_images, record_loss=False):
@@ -108,14 +113,14 @@ class DCGAN:
 
 
 	def save_models(self):
-		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
-		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
+		discriminator_prefix = os.path.join(self._discriminator_checkpoint_path, "checkpoint")
+		generator_prefix = os.path.join(self._generator_checkpoint_path, "checkpoint")
 
-		tf.keras.models.save_model(self._discriminator.get_model(), discriminator_path[18:])
-		tf.keras.models.save_model(self._generator.get_model(), generator_path[18:])
+		self._discriminator_checkpoint.save(file_prefix=discriminator_prefix[18:])
+		self._generator_checkpoint.save(file_prefix=generator_prefix[18:])
 
-		upload_file_to_cloud(discriminator_path[18:])
-		upload_file_to_cloud(generator_path[18:])
+		upload_dir_to_cloud(self._discriminator_checkpoint_path[18:])
+		upload_dir_to_cloud(self._generator_checkpoint_path[18:])
 
 	def plot_losses(self, folder_path):
 		self._disc_loss_grapher.plot(folder_path)
@@ -123,20 +128,14 @@ class DCGAN:
 
 
 	def _restore_models(self, job_dir):
-		local_checkpoint_path = self._checkpoint_save_path[18:]
-		discriminator_path = os.path.join(self._checkpoint_save_path, 'discriminator.h5')
-		generator_path = os.path.join(self._checkpoint_save_path, 'generator.h5')
+		local_discriminator_path = self._discriminator_checkpoint_path[18:]
+		local_generator_path = self._generator_checkpoint_path[18:]
 
-		if not os.listdir(local_checkpoint_path):
-			#os.makedirs(local_checkpoint_path)
+		if not os.listdir(local_discriminator_path):
+			download_dir_from_cloud(self._discriminator_checkpoint_path[18:])
+			download_dir_from_cloud(self._generator_checkpoint_path[18:])
 
-			download_from_cloud(discriminator_path)
-			download_from_cloud(generator_path)
-
-		restored_generator_model = tf.keras.models.load_model(generator_path[18:])
-		restored_discriminator_model = tf.keras.models.load_model(discriminator_path[18:])
-
-		self._generator.set_model(restored_generator_model)
-		self._discriminator.set_model(restored_discriminator_model)
+		status = self._discriminator_checkpoint.restore(tf.train.latest_checkpoint(self._discriminator_checkpoint_path[18:]))
+		status = self._generator_checkpoint.restore(tf.train.latest_checkpoint(self._generator_checkpoint_path[18:]))
 
 		# Need to load epoch too
