@@ -22,7 +22,7 @@ class DCGAN:
 		self._disc_loss_grapher = Grapher('discriminator_loss')
 		self._gen_loss_grapher = Grapher('generator_loss')
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=2, restore=False):
+	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=3, restore=False):
 		self._discriminator_checkpoint_path = os.path.join(job_dir, "checkpoints", "discriminator")
 		self._generator_checkpoint_path = os.path.join(job_dir, "checkpoints", "generator")
 		self._discriminator_checkpoint = tfe.Checkpoint(optimizer=self._discriminator.get_optimizer(), model=self._discriminator.get_model())
@@ -53,7 +53,7 @@ class DCGAN:
 
 					self.train_step(real_batch, record_loss=record_loss)
 					iteration += 1
-					if iteration == 10:
+					if iteration == 13:
 						break
 					print("Batch time: ", time.time() - batch_time)
 
@@ -93,7 +93,8 @@ class DCGAN:
 			gen_loss = self._generator.loss(DGz)
 
 			#print("Global step: ", tf.train.get_global_step())
-			tf.contrib.summary.scalar('Generator_loss', gen_loss, step=self._global_step)
+			if record_loss:
+				tf.contrib.summary.scalar('Generator_loss', gen_loss)
 				#self._gen_loss_grapher.record(gen_loss.numpy())
 			#print("Gen loss: ", gen_loss.numpy())
 
@@ -114,10 +115,9 @@ class DCGAN:
 				return
 
 			disc_loss = self._discriminator.loss(real_output, generated_output)
-			#print("Discriminator loss: ", disc_loss.numpy())
 
-			tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
-			#self._disc_loss_grapher.record(disc_loss.numpy())
+			if record_loss:
+				tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
 
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
