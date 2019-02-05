@@ -28,6 +28,10 @@ class DCGAN:
 		self._discriminator_checkpoint = tfe.Checkpoint(optimizer=self._discriminator.get_optimizer(), model=self._discriminator.get_model())
 		self._generator_checkpoint = tfe.Checkpoint(optimizer=self._generator.get_optimizer(), model=self._generator.get_model())
 
+		writer = tf.contrib.summary.create_file_writer(os.path.join(job_dir[18:], "summary"))
+		with writer.as_default():
+			tf.contrib.summary.always_record_summaries()
+
 		self._batch_size = batch_size
 
 		if restore:
@@ -50,11 +54,14 @@ class DCGAN:
 				print("Batch time: ", time.time() - batch_time)
 				break
 
-			self.save_models()
-			generate_and_save_images(self._generator, \
-								     epoch, \
-								     self._random_vector_for_generation, \
-								     job_dir)
+			if epoch > 0 and epoch % 9 == 0:
+				self.save_models()
+
+			if epoch % 3 == 0:
+				generate_and_save_images(self._generator, \
+									     epoch, \
+									     self._random_vector_for_generation, \
+									     job_dir)
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 		
 		#self.plot_losses(os.path.join(job_dir[18:], "plots"))
@@ -82,6 +89,7 @@ class DCGAN:
 
 			if record_loss:
 				pass
+				tf.contrib.summary.scalar('Generator_loss', gen_loss)
 				#self._gen_loss_grapher.record(gen_loss.numpy())
 			#print("Gen loss: ", gen_loss.numpy())
 
@@ -105,7 +113,7 @@ class DCGAN:
 			#print("Discriminator loss: ", disc_loss.numpy())
 
 			if record_loss:
-				pass
+				tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
 				#self._disc_loss_grapher.record(disc_loss.numpy())
 
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())

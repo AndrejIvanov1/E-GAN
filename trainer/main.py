@@ -45,11 +45,14 @@ def train(dataset, epochs):
 def cloud_setup():
 	discriminator_checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", "discriminator")
 	generator_checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", "generator")
+	summary_path = os.path.join(JOB_DIR[18:], "summary")
 
 	if not os.path.exists(discriminator_checkpoints_path):
 		os.makedirs(discriminator_checkpoints_path)
 	if not os.path.exists(generator_checkpoints_path):
 		os.makedirs(generator_checkpoints_path)
+	if not os.path.exists(summary_path):
+		os.makedirs(summary_path)
 
 
 
