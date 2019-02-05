@@ -16,6 +16,7 @@ from trainer.discriminator import Discriminator
 from trainer.generation import Generation
 from trainer.egan import EGAN
 from trainer.dcgan import DCGAN
+from trainer.utils import clean_dir
 
 import tensorflow as tf
 import os
@@ -53,6 +54,8 @@ def cloud_setup():
 		os.makedirs(generator_checkpoints_path)
 	if not os.path.exists(summary_path):
 		os.makedirs(summary_path)
+
+	clean_dir(summary_path)
 
 
 

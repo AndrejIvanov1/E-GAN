@@ -88,3 +88,8 @@ def connect_to_cloud_storage():
 	bucket = storage_client.get_bucket(BUCKET_NAME)
 
 	return bucket
+
+def clean_dir(dir_path):
+	for filename in os.listdir(dir_path):
+		path = os.path.join(dir_path, filename)
+		os.unlink(path)
