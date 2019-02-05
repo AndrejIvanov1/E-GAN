@@ -22,15 +22,16 @@ class DCGAN:
 		self._disc_loss_grapher = Grapher('discriminator_loss')
 		self._gen_loss_grapher = Grapher('generator_loss')
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=8, restore=False):
+	def train(self, dataset, epochs, job_dir, batch_size=256, n_iterations_loss_plot=2, restore=False):
 		self._discriminator_checkpoint_path = os.path.join(job_dir, "checkpoints", "discriminator")
 		self._generator_checkpoint_path = os.path.join(job_dir, "checkpoints", "generator")
 		self._discriminator_checkpoint = tfe.Checkpoint(optimizer=self._discriminator.get_optimizer(), model=self._discriminator.get_model())
 		self._generator_checkpoint = tfe.Checkpoint(optimizer=self._generator.get_optimizer(), model=self._generator.get_model())
 
-		writer = tf.contrib.summary.create_file_writer(os.path.join(job_dir[18:], "summary"))
-		with writer.as_default():
-			tf.contrib.summary.always_record_summaries()
+		self._global_step = tf.train.get_or_create_global_step()
+		summary_writer = tf.contrib.summary.create_file_writer(os.path.join(job_dir[18:], "summary"), flush_millis=10000)
+		summary_writer.set_as_default()
+		tf.contrib.summary.always_record_summaries()
 
 		self._batch_size = batch_size
 
@@ -39,32 +40,36 @@ class DCGAN:
 
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 
-		for epoch in range(epochs):
-			start_time = time.time()
-			iteration = 0
-			for real_batch in dataset:
-				print("Iteration #{}".format(iteration))
-				batch_time = time.time()
-				record_loss = False
-				if iteration % n_iterations_loss_plot == 0:
-					record_loss = True
+		with summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+			for epoch in range(epochs):
+				start_time = time.time()
+				iteration = 0
+				for real_batch in dataset:
+					print("Iteration #{}".format(iteration))
+					batch_time = time.time()
+					record_loss = False
+					if iteration % n_iterations_loss_plot == 0:
+						record_loss = True
 
-				self.train_step(real_batch, record_loss=record_loss)
-				iteration += 1
-				print("Batch time: ", time.time() - batch_time)
-				break
+					self.train_step(real_batch, record_loss=record_loss)
+					iteration += 1
+					if iteration == 10:
+						break
+					print("Batch time: ", time.time() - batch_time)
 
-			if epoch > 0 and epoch % 9 == 0:
-				self.save_models()
+					self._global_step.assign_add(1)
 
-			if epoch % 3 == 0:
-				generate_and_save_images(self._generator, \
-									     epoch, \
-									     self._random_vector_for_generation, \
-									     job_dir)
-			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
+				if epoch > 0 and epoch % 9 == 0:
+					self.save_models()
+
+				if epoch % 3 == 0:
+					generate_and_save_images(self._generator, \
+										     epoch, \
+										     self._random_vector_for_generation, \
+										     job_dir)
+				print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 		
-		#self.plot_losses(os.path.join(job_dir[18:], "plots"))
+			#self.plot_losses(os.path.join(job_dir[18:], "plots"))
 
 	@tf.contrib.eager.defun
 	def train_step(self, real_batch, record_loss=False):
@@ -87,9 +92,8 @@ class DCGAN:
 			DGz = self._discriminator.discriminate_images(Gz)
 			gen_loss = self._generator.loss(DGz)
 
-			if record_loss:
-				pass
-				tf.contrib.summary.scalar('Generator_loss', gen_loss)
+			#print("Global step: ", tf.train.get_global_step())
+			tf.contrib.summary.scalar('Generator_loss', gen_loss, step=self._global_step)
 				#self._gen_loss_grapher.record(gen_loss.numpy())
 			#print("Gen loss: ", gen_loss.numpy())
 
@@ -112,9 +116,8 @@ class DCGAN:
 			disc_loss = self._discriminator.loss(real_output, generated_output)
 			#print("Discriminator loss: ", disc_loss.numpy())
 
-			if record_loss:
-				tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
-				#self._disc_loss_grapher.record(disc_loss.numpy())
+			tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
+			#self._disc_loss_grapher.record(disc_loss.numpy())
 
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
