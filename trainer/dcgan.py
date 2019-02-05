@@ -75,8 +75,10 @@ class DCGAN:
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
 		start_time = time.time()
+		recorded = record_loss
 		for real_images in real_batch:
-			self.disc_train_step(real_images, record_loss=record_loss) 
+			self.disc_train_step(real_images, record_loss=recorded)
+			recorded = False 
 
 		#print("Discriminator train step time:", time.time() - start_time)
 
