@@ -55,6 +55,9 @@ class DCGAN:
 					iteration += 1
 					print("Batch time: ", time.time() - batch_time)
 
+					if iteration == 3:
+						break
+
 					self._global_step.assign_add(1)
 
 				if epoch > 0 and epoch % 9 == 0:

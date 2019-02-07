@@ -58,7 +58,6 @@ def cloud_setup():
 	clean_dir(summary_path)
 
 
-
 def local_setup():
 	os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 	if os.path.exists(credentials_path):
