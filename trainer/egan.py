@@ -104,25 +104,35 @@ class EGAN:
 		for parent in self._generation.get_parents():
 			z = tf.random_normal([self._batch_size, self._noise_dim])
 
-			# TODO: NEEDS TO BE IN PARALEL
+			#children = list(map(lambda mutation: self.mutate(z, parent, mutation, record_loss), mutations))
+			children = [self.mutate(z, parent, mutation, record_loss) for mutation in mutations]
+			
+			print(children)
+			"""
 			children = []
 			for mutation in mutations:
-				with tf.GradientTape() as gen_tape:
-					child = parent.clone(mutation=mutation.__name__)
-					Gz = child.generate_images(z, training=True)
-					DGz = self._discriminator.discriminate_images(Gz)
-					child_loss = mutation(DGz)
-
-					if record_loss:
-						with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-							tf.contrib.summary.scalar(mutation.__name__, child_loss)
-
-				gradients_of_child = gen_tape.gradient(child_loss, child.variables())
-				child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
-
+				child = self.mutate(z, parent, mutation, record_loss)
 				children.append(child)
-
+			"""
 			return children
+
+
+	def mutate(self, z, parent, mutation, record_loss):
+		with tf.GradientTape() as gen_tape:
+			child = parent.clone(mutation=mutation.__name__)
+			Gz = child.generate_images(z, training=True)
+			DGz = self._discriminator.discriminate_images(Gz)
+			child_loss = mutation(DGz)
+
+			if record_loss:
+				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+					tf.contrib.summary.scalar(mutation.__name__, child_loss)
+
+		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
+		child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
+
+		return child
+
 
 	def selection(self, children, real_images):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
