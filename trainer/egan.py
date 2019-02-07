@@ -29,7 +29,6 @@ class EGAN:
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
 
 	def train(self, dataset, epochs, job_dir, batch_size=256):
-		#train_step = tf.contrib.eager.defun(self.train_step)
 		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints", "egan")
 		self._batch_size = batch_size
 
@@ -105,10 +104,10 @@ class EGAN:
 					child_loss = mutation(DGz)
 					#print(mutation.__name__, child_loss)
 
-					gradients_of_child = gen_tape.gradient(child_loss, child.variables())
-					child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
+				gradients_of_child = gen_tape.gradient(child_loss, child.variables())
+				child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
 
-					children.append(child)
+				children.append(child)
 
 			return children
 

@@ -27,9 +27,9 @@ class DCGAN:
 		self._generator_checkpoint_path = os.path.join(job_dir, "checkpoints", "generator")
 		self._discriminator_checkpoint = tfe.Checkpoint(optimizer=self._discriminator.get_optimizer(), model=self._discriminator.get_model())
 		self._generator_checkpoint = tfe.Checkpoint(optimizer=self._generator.get_optimizer(), model=self._generator.get_model())
-
+		self._summary_path = os.path.join(job_dir, "summary")
 		self._global_step = tf.train.get_or_create_global_step()
-		summary_writer = tf.contrib.summary.create_file_writer(os.path.join(job_dir[18:], "summary"), flush_millis=10000)
+		summary_writer = tf.contrib.summary.create_file_writer(self._summary_path[18:], flush_millis=10000)
 		summary_writer.set_as_default()
 		tf.contrib.summary.always_record_summaries()
 
@@ -53,8 +53,6 @@ class DCGAN:
 
 					self.train_step(real_batch, record_loss=record_loss)
 					iteration += 1
-					if iteration == 13:
-						break
 					print("Batch time: ", time.time() - batch_time)
 
 					self._global_step.assign_add(1)
@@ -68,25 +66,47 @@ class DCGAN:
 										     self._random_vector_for_generation, \
 										     job_dir)
 				print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
-		
-			#self.plot_losses(os.path.join(job_dir[18:], "plots"))
+	
+		upload_dir_to_cloud(self._summary_path[18:])
 
 	@tf.contrib.eager.defun
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
 		start_time = time.time()
 		recorded = record_loss
-		for real_images in real_batch:
-			self.disc_train_step(real_images, record_loss=recorded)
-			recorded = False 
+		DGz = None
+		with tf.GradientTape() as gen_tape:
+			for x in real_batch:
+				with tf.GradientTape() as disc_tape:
+					z = tf.random_normal([self._batch_size, self._noise_dim])
+					Gz = self._generator.generate_images(z)
+					DGz = self._discriminator.discriminate_images(Gz)
+					Dx = self._discriminator.discriminate_images(x)
 
-		#print("Discriminator train step time:", time.time() - start_time)
+					if Dx.shape != DGz.shape:
+						print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
+						return
 
-		start_time = time.time()
-		self.gen_train_step(record_loss=record_loss)
-		#print("Gen train step: ", time.time() - start_time)
+					disc_loss = self._discriminator.loss(Dx, DGz)
+
+					if recorded:
+						tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
+
+				gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
+				self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
+				recorded = False 
+
+			start_time = time.time()
+			z = tf.random_normal([self._batch_size, self._noise_dim])
+			Gz = self._generator.generate_images(z)
+			DGz = self._discriminator.discriminate_images(Gz)
+			gen_loss = self._generator.loss(DGz)
+			if record_loss:
+				tf.contrib.summary.scalar('Generator_loss', gen_loss)
+
+		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
+		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
 		
-
 	def gen_train_step(self, record_loss=False):
 		with tf.GradientTape() as gen_tape:
 			z = tf.random_normal([self._batch_size, self._noise_dim])
@@ -103,20 +123,15 @@ class DCGAN:
 		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
 		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
 
-			
-	def disc_train_step(self, real_images, record_loss=False):
-		noise = tf.random_normal([self._batch_size, self._noise_dim])
-		generated_images = self._generator.generate_images(noise)
-
+	def disc_train_step(self, x, DGz, disc_tape, record_loss=False):
 		with tf.GradientTape() as disc_tape:
-			real_output = self._discriminator.discriminate_images(real_images)
-			generated_output = self._discriminator.discriminate_images(generated_images)
+			Dx = self._discriminator.discriminate_images(x)
 
-			if real_output.shape != generated_output.shape:
-				print("D real output shape: {} does not match D generated output shape: {}".format(real_output.shape, generated_output.shape))
+			if Dx.shape != DGz.shape:
+				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
 				return
 
-			disc_loss = self._discriminator.loss(real_output, generated_output)
+			disc_loss = self._discriminator.loss(Dx, DGz)
 
 			if record_loss:
 				tf.contrib.summary.scalar('Discriminator_loss', disc_loss)

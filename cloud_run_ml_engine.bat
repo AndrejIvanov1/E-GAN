@@ -1,7 +1,7 @@
-gcloud ml-engine jobs submit training defun_50_epochs_GPU ^
+gcloud ml-engine jobs submit training test_semi_optimized ^
  	--module-name=trainer.main ^
  	--package-path=trainer ^
- 	--job-dir=gs://gan_datasets/defun_50_epochs ^
+ 	--job-dir=gs://gan_datasets/test_semi_optimized ^
  	--staging-bucket=gs://gan_datasets ^
  	--python-version=3.5 ^
  	--runtime-version=1.12 ^

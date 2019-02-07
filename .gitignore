@@ -8,3 +8,4 @@ images
 good_samples
 checkpoints
 local*
+checkpoint_test

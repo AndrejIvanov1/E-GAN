@@ -23,9 +23,9 @@ tf.losses.sigmoid_cross_entropy(tf.ones_like(Dgz), Dgz)
 
 tf.losses.sigmoid_cross_entropy(tf.zeros_like(Dgz), Dgz)
 				SAME AS 
-	-tf.reduce_mean(tf.log(1 - tf.nn.sigmoid(Dgz)))
+	tf.reduce_mean(tf.log(1 - tf.nn.sigmoid(Dgz)))
 				SAME AS
-			-E[log(1 - D(G(z)))]
+			E[log(1 - D(G(z)))]
 
 
 
