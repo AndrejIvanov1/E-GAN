@@ -31,7 +31,8 @@ def total_score(discriminator, x, Gz, gamma=0.15):
 	return score
 
 
-def select_fittest(fitnesses, children, n_parents=1):
-	fitnesses = sorted(zip(fitnesses, children), key=lambda x: x[0], reverse=True)
-
-	return list(map(lambda pair: pair[1], fitnesses[:n_parents]))
+def select_fittest(scored_children, n_parents=1):
+	sorted_children = sorted(scored_children, key=lambda x: x[1], reverse=True)
+	
+	return zip(*sorted_children[:n_parents])
+	#return list(map(lambda pair: pair[1], fitnesses[:n_parents]))
