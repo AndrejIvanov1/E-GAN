@@ -44,6 +44,9 @@ class Generator:
 	def get_weights(self):
 		return self._model.get_weights()
 
+	def set_weights(self, weights):
+		self._model.set_weights(weights)
+
 	def get_optimizer(self):
 		return self._optimizer
 
@@ -58,7 +61,7 @@ class Generator:
 		return self._mutation
 
 	def clone(self, mutation='None'):
-		model_clone = tf.keras.models.clone_model(self._model)
+		model_clone = self._create_model()
 		model_clone.set_weights(self.get_weights())
 
 		new_generator = Generator(model=model_clone)

@@ -72,12 +72,15 @@ class EGAN:
 		print("Discriminator train step time:", time.time() - start_time)
 
 		start_time = time.time()
-		children = self.gen_train_step(mutations=[heuristic_mutation, minimax_mutation, least_square_mutation], record_loss=record_loss)
+		children = self.gen_train_step([heuristic_mutation, 
+							            minimax_mutation, 
+							            least_square_mutation],
+							            real_batch[0], 
+							            record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
 		start_time = time.time()
-		self.selection(children, real_batch[0])
+		#self.selection(children, real_batch[0])
 		print("Selection: ", time.time() - start_time)
-
 
 
 	def disc_train_step(self, real_images, record_loss):
@@ -100,38 +103,67 @@ class EGAN:
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
 
-	def gen_train_step(self, mutations, record_loss):
+	def gen_train_step(self, mutations, x, record_loss):
+		print("NUM PARENTS", self._generation.get_parents())
 		for parent in self._generation.get_parents():
-			z = tf.random_normal([self._batch_size, self._noise_dim])
+			print("GEN TRAIN STEP ------------------")
+			self._saved_weights = parent.get_weights()
+		
+			with tf.GradientTape(persistent=True, watch_accessed_variables=False) as tape:
+				tape.watch(parent.variables())
+				z = tf.random_normal([self._batch_size, self._noise_dim])
+				Gz = parent.generate_images(z)
+				DGz = self._discriminator.discriminate_images(Gz)
 
-			#children = list(map(lambda mutation: self.mutate(z, parent, mutation, record_loss), mutations))
-			children = [self.mutate(z, parent, mutation, record_loss) for mutation in mutations]
+				children_losses = list(map(lambda mutation: mutation(DGz), mutations))
 			
-			print(children)
+			children_weights = list(map(lambda loss: self.apply_gradients(parent, loss, tape), children_losses))
+			
+				#children = list(map(lambda mutation: self.mutate(parent, mutation, z, DGz, x, tape, record_loss), mutations))
+			#children = [self.mutate(z, parent, mutation, record_loss) for mutation in mutations]
+			
 			"""
 			children = []
 			for mutation in mutations:
 				child = self.mutate(z, parent, mutation, record_loss)
 				children.append(child)
-			"""
+			
 			return children
+	
+			"""
 
+	def apply_gradients(self, parent, loss, tape):
+		grad = tape.gradient(loss, parent.variables())
+		parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
 
-	def mutate(self, z, parent, mutation, record_loss):
-		with tf.GradientTape() as gen_tape:
-			child = parent.clone(mutation=mutation.__name__)
-			Gz = child.generate_images(z, training=True)
-			DGz = self._discriminator.discriminate_images(Gz)
-			child_loss = mutation(DGz)
+		new_weights = parent.get_weights()
+		parent.set_weights(self._saved_weights)
 
-			if record_loss:
-				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-					tf.contrib.summary.scalar(mutation.__name__, child_loss)
+		return new_weights
 
-		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
-		child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
+	def mutate(self, parent, mutation, z, DGz, x, tape, record_loss):
+		print("VARIABLES", parent.variables()[0])
+		print("WEIGHTS", parent.get_weights()[0])
 
-		return child
+		return (1,1)
+		# Create child by mutating parent
+		child_loss = mutation(DGz)
+		if record_loss:
+			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+				tf.contrib.summary.scalar(mutation.__name__, child_loss)
+		grad = tape.gradient(child_loss, parent.variables())
+		parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
+
+		# Calculate fitness
+		Gz = parent.generate_images(z)
+		score = fitness.total_score(self._discriminator, x, Gz, gamma=self._gamma)
+
+		result = (parent.get_weights(), score)
+
+		# Move method to Generator object
+		parent.set_weights(self._saved_weights)
+
+		return result
 
 
 	def selection(self, children, real_images):
@@ -141,7 +173,7 @@ class EGAN:
 		fitnesses = []
 		for child in children:
 			Gz = child.generate_images(z, training=True)
-			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=self._gamma))
+			#fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=self._gamma))
 
 		#print(fitnesses)
 		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
