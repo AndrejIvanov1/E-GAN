@@ -51,7 +51,7 @@ class EGAN:
 
 				self._global_step.assign_add(1)
 				iteration+=1
-				
+								
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 			#self.save_models()
 			generate_and_save_images(self._generation.get_parent(), \
@@ -114,7 +114,10 @@ class EGAN:
 
 			children = list(map(lambda loss: self.apply_gradients(parent, loss, tape, z), children_losses))
 
-			scored_children = list(map(lambda w_Gz_pair: (w_Gz_pair[0], fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
+			summary_writer = None
+			if record_loss:
+				summary_writer == self._summary_writer
+			scored_children = list(map(lambda w_Gz_pair: ((w_Gz_pair[0],) + fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
 	
 			self.selection(scored_children)
 
@@ -124,7 +127,7 @@ class EGAN:
 
 		for i in range(len(mutations)):
 			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-				tf.contrib.summary.scalar(mutations[i].__name__, losses[i])
+				tf.contrib.summary.scalar(mutations[i].__name__, losses[i], family='mutations')
 
 	def apply_gradients(self, parent, loss, tape, z):
 		grad = tape.gradient(loss, parent.variables())
@@ -138,11 +141,15 @@ class EGAN:
 		return new_weights, Gz
 
 	def selection(self, scored_children):
-		weights, fitnesses = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
+		weights, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 		
+		print(fitnesses[0], quality[0], diversity[0])
+
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-			tf.contrib.summary.scalar('fitness', fitnesses[0])
-		
+			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
+			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
+			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
+
 		self._generation.next_gen(weights)
 
 	"""

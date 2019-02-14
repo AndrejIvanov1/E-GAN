@@ -24,11 +24,12 @@ def total_score(discriminator, x, Gz, gamma=0.15):
 		
 	gradients = disc_tape.gradient(disc_loss, discriminator.variables())
 
-	score = (1 - gamma) * quality_score(Dx, DGz) + \
-			gamma       * diversity_score(gradients)
-	#print("Total score: ", score.numpy())
+	qs = quality_score(Dx, DGz)
+	ds = diversity_score(gradients)
 
-	return score
+	score = (1.0 - gamma) * qs + (gamma * ds)
+	#print("Total score: ", score.numpy())
+	return score, qs, ds
 
 
 def select_fittest(scored_children, n_parents=1):
