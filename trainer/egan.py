@@ -1,6 +1,6 @@
 from   trainer.mutations import heuristic_mutation, minimax_mutation, least_square_mutation
 import trainer.fitness as fitness
-from   trainer.utils import generate_and_save_images, upload_file_to_cloud 
+from   trainer.utils import generate_and_save_images, upload_file_to_cloud, upload_dir_to_cloud
 from   trainer.generator import Generator
 from   trainer.discriminator import Discriminator
 from   trainer.generation import Generation
@@ -16,7 +16,7 @@ tf.enable_eager_execution()
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 class EGAN:
-	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.2):
+	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.4):
 		self._generation = Generation(num_parents=1, num_children=3)
 		self._generation.initialize(noise_dim=noise_dim)
 		self._noise_dim = noise_dim
@@ -28,7 +28,7 @@ class EGAN:
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, restore=False, n_iterations_loss_plot=1):
+	def train(self, dataset, epochs, job_dir, batch_size=256, restore=False, n_iterations_loss_plot=2):
 		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints")
 		self._batch_size = batch_size
 
@@ -52,12 +52,13 @@ class EGAN:
 				self._global_step.assign_add(1)
 				iteration+=1
 				
+			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 			#self.save_models()
 			generate_and_save_images(self._generation.get_parent(), \
 								     epoch, \
 								     self._random_vector_for_generation,
 								     job_dir)
-			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
+			upload_dir_to_cloud(self._summary_path[18:])
 
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
@@ -112,8 +113,9 @@ class EGAN:
 				self.record_mutations(mutations, children_losses)
 
 			children = list(map(lambda loss: self.apply_gradients(parent, loss, tape, z), children_losses))
-			scored_children = list(map(lambda w_Gz_pair: (w_Gz_pair[0], fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
 
+			scored_children = list(map(lambda w_Gz_pair: (w_Gz_pair[0], fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
+	
 			self.selection(scored_children)
 
 
@@ -129,37 +131,21 @@ class EGAN:
 		parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
 
 		new_weights = parent.get_weights()
+
 		Gz = parent.generate_images(z)
 		parent.set_weights(self._saved_weights)
 
 		return new_weights, Gz
 
-	""" 
-	def mutate(self, parent, mutation, z, DGz, x, tape, record_loss):
-		child_loss = mutation(DGz)
-		if record_loss:
-			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-				tf.contrib.summary.scalar(mutation.__name__, child_loss)
-		grad = tape.gradient(child_loss, parent.variables())
-		parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
-
-		# Calculate fitness
-		Gz = parent.generate_images(z)
-		score = fitness.total_score(self._discriminator, x, Gz, gamma=self._gamma)
-
-		result = (parent.get_weights(), score)
-
-		# Move method to Generator object
-		parent.set_weights(self._saved_weights)
-
-		return result
-	"""
-
 	def selection(self, scored_children):
 		weights, fitnesses = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 		
+		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+			tf.contrib.summary.scalar('fitness', fitnesses[0])
+		
 		self._generation.next_gen(weights)
 
+	"""
 	def old_selection(self, children, real_images):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 
@@ -176,6 +162,7 @@ class EGAN:
 
 		# Works only with arrays of tensors ??
 		#print(tf.map_fn(lambda child: fitness.total_score(Dx, self._calc_DGz(child, z)), np.array(fintesses)))
+	"""
 
 	def _calc_DGz(self, generator, z):
 		Gz = generator.generate_images(z, training=True)

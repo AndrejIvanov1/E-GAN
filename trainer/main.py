@@ -1,6 +1,6 @@
 """Run a training job on Cloud ML Engine to train a GAN.
 Usage:
-  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--epochs <epochs>] [--restore][--job-dir <job-dir>]
+  trainer.main --network-type <network-type> [--batch-size <batch-size>] [--disc-train-steps <disc-train-steps>] [--epochs <epochs>] [--restore] [--gamma <gamma>] [--job-dir <job-dir>]
 
 Options:
   -h --help     Show this screen.
@@ -9,6 +9,7 @@ Options:
   --job-dir <job-dir> Job dir [default: '.']
   --restore
   --epochs <epochs> [default: 10]
+  --gammma <gamma> [default: 0.4]
 """
 from docopt import docopt
 from trainer.generator import Generator
@@ -31,13 +32,15 @@ credentials_path = r'C:\Users\user\key.json'
 network_type = 'EGAN'
 JOB_DIR = '.'
 restore = False
+gamma = 0.4
 
 def train(dataset, epochs):
 	if network_type == 'EGAN':
 		gan = EGAN(num_parents=1, \
 				   num_children=3, \
 				   noise_dim=100, \
-				   discriminator_update_steps=discriminator_train_steps)
+				   discriminator_update_steps=discriminator_train_steps,
+				   gamma=gamma)
 	else:
 		gan = DCGAN(noise_dim=noise_dim, discriminator_update_steps=discriminator_train_steps)
 
@@ -73,6 +76,7 @@ if __name__ == '__main__':
 	BATCH_SIZE = int(arguments['--batch-size'])
 	num_epochs = int(arguments['--epochs'])
 	restore = arguments['--restore']
+	gamma = float(arguments['<gamma>'])
 
 	(train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 

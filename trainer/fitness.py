@@ -5,14 +5,14 @@ from trainer.utils import flatten
 def quality_score(Dx, DGz):
 	DGz = tf.nn.sigmoid(DGz)
 	score = tf.reduce_mean(tf.log(DGz))
-	print("Quality: ", score.numpy())
+	#print("Quality: ", score.numpy())
 
 	return score
 
 def diversity_score(gradients):
 	gradients = flatten(gradients)
 	score = -tf.log(tf.norm(gradients))
-	print("Diversity: ", score.numpy())
+	#print("Diversity: ", score.numpy())
 	return score
 
 def total_score(discriminator, x, Gz, gamma=0.15):
@@ -26,7 +26,7 @@ def total_score(discriminator, x, Gz, gamma=0.15):
 
 	score = (1 - gamma) * quality_score(Dx, DGz) + \
 			gamma       * diversity_score(gradients)
-	print("Total score: ", score.numpy())
+	#print("Total score: ", score.numpy())
 
 	return score
 
