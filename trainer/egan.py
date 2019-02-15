@@ -131,7 +131,10 @@ class EGAN:
 
 	def apply_gradients(self, parent, loss, tape, z):
 		grad = tape.gradient(loss, parent.variables())
-		parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
+		# new optimizer every time
+		optimizer = tf.train.AdamOptimizer(1e-4)
+		optimizer.apply_gradients(zip(grad, parent.variables()))
+		#parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
 
 		new_weights = parent.get_weights()
 
@@ -142,8 +145,6 @@ class EGAN:
 
 	def selection(self, scored_children):
 		weights, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
-		
-		print(fitnesses[0], quality[0], diversity[0])
 
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
