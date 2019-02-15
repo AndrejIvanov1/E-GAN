@@ -27,7 +27,8 @@ def total_score(discriminator, x, Gz, gamma=0.15):
 	qs = quality_score(Dx, DGz)
 	ds = diversity_score(gradients)
 
-	score = (1.0 - gamma) * qs + (gamma * ds)
+	#score = (1.0 - gamma) * qs + (gamma * ds)
+	score = qs + gamma * ds
 	#print("Total score: ", score.numpy())
 	return score, qs, ds
 
