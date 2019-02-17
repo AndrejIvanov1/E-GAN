@@ -4,7 +4,7 @@ from trainer.utils import flatten
 # E[log(D(G))]
 def quality_score(Dx, DGz):
 	DGz = tf.nn.sigmoid(DGz)
-	score = tf.reduce_mean(tf.log(DGz))
+	score = tf.reduce_mean(DGz)
 	#print("Quality: ", score.numpy())
 
 	return score
