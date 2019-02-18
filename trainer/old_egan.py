@@ -1,6 +1,6 @@
 from   trainer.mutations import heuristic_mutation, minimax_mutation, least_square_mutation
 import trainer.fitness as fitness
-from   trainer.utils import generate_and_save_images, upload_file_to_cloud, upload_dir_to_cloud
+from   trainer.utils import generate_and_save_images, upload_file_to_cloud, upload_dir_to_cloud 
 from   trainer.generator import Generator
 from   trainer.discriminator import Discriminator
 from   trainer.generation import Generation
@@ -15,8 +15,8 @@ print("tf version: ", tf.__version__)
 tf.enable_eager_execution()
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-class EGAN:
-	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.4):
+class OLD_EGAN:
+	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.2):
 		self._generation = Generation(num_parents=1, num_children=3)
 		self._generation.initialize(noise_dim=noise_dim)
 		self._noise_dim = noise_dim
@@ -28,7 +28,7 @@ class EGAN:
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
 
-	def train(self, dataset, epochs, job_dir, batch_size=256, restore=False, n_iterations_loss_plot=2):
+	def train(self, dataset, epochs, job_dir, batch_size=256, restore=False, n_iterations_loss_plot=1):
 		self._checkpoint_save_path = os.path.join(job_dir, "checkpoints")
 		self._batch_size = batch_size
 
@@ -37,7 +37,6 @@ class EGAN:
 		self._summary_writer = tf.contrib.summary.create_file_writer(self._summary_path[18:], flush_millis=10000)
 		self._summary_writer.set_as_default()
 		tf.contrib.summary.always_record_summaries()
-
 
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 		for epoch in range(epochs):
@@ -71,12 +70,13 @@ class EGAN:
 		print("Discriminator train step time:", time.time() - start_time)
 
 		start_time = time.time()
-		children = self.gen_train_step([heuristic_mutation, 
-							            minimax_mutation, 
-							            least_square_mutation],
-							            real_batch[0], 
-							            record_loss=record_loss)
+		children = self.gen_train_step(mutations=[heuristic_mutation, minimax_mutation, least_square_mutation], record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
+		start_time = time.time()
+		self.selection(children, real_batch[0], record_loss)
+		print("Selection: ", time.time() - start_time)
+
+
 
 	def disc_train_step(self, real_images, record_loss):
 		noise = tf.random_normal([self._batch_size, self._noise_dim])
@@ -95,83 +95,55 @@ class EGAN:
 				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 					tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
 
-		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
-		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
+			gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
+			self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
 
-	def gen_train_step(self, mutations, x, record_loss):
+	def gen_train_step(self, mutations, record_loss):
 		for parent in self._generation.get_parents():
-			self._saved_weights = parent.get_weights()
 			z = tf.random_normal([self._batch_size, self._noise_dim])
 
-			# Does this tape work like it's supposed to ??
-			with tf.GradientTape(persistent=True) as tape:
-				Gz = parent.generate_images(z)
-				DGz = self._discriminator.discriminate_images(Gz)
+			# TODO: NEEDS TO BE IN PARALEL
+			children = []
+			for mutation in mutations:
+				with tf.GradientTape() as gen_tape:
+					child = parent.clone(mutation=mutation.__name__)
+					Gz = child.generate_images(z, training=True)
+					DGz = self._discriminator.discriminate_images(Gz)
+					child_loss = mutation(DGz)
+					
+					if record_loss:
+						with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+							tf.contrib.summary.scalar(mutation.__name__, child_loss, family='mutations')
 
-				children_losses = list(map(lambda mutation: mutation(DGz), mutations))
-			
-			if record_loss:
-				self.record_mutations(mutations, children_losses)
+					gradients_of_child = gen_tape.gradient(child_loss, child.variables())
+					child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
 
-			children = list(map(lambda loss: self.apply_gradients(parent, loss, tape, z), children_losses))
+					children.append(child)
 
-			summary_writer = None
-			if record_loss:
-				summary_writer == self._summary_writer
-			scored_children = list(map(lambda w_Gz_pair: ((w_Gz_pair[0],) + fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
-	
-			self.selection(scored_children)
+			return children
 
-
-	def record_mutations(self, mutations, losses):
-		assert len(mutations) == len(losses)
-
-		for i in range(len(mutations)):
-			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-				tf.contrib.summary.scalar(mutations[i].__name__, losses[i], family='mutations')
-
-	def apply_gradients(self, parent, loss, tape, z):
-		grad = tape.gradient(loss, parent.variables())
-		# new optimizer every time
-		optimizer = tf.train.AdamOptimizer(1e-4)
-		optimizer.apply_gradients(zip(grad, parent.variables()))
-		#parent.get_optimizer().apply_gradients(zip(grad, parent.variables()))
-
-		new_weights = parent.get_weights()
-
-		Gz = parent.generate_images(z)
-		parent.set_weights(self._saved_weights)
-
-		return new_weights, Gz
-
-	def selection(self, scored_children):
-		weights, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
-
-		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
-			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
-			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
-
-		self._generation.next_gen(weights)
-
-	"""
-	def old_selection(self, children, real_images):
+	def selection(self, children, real_images, record_loss):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 
 		# TODO: MAKE IT PARALLEL
 		fitnesses = []
 		for child in children:
 			Gz = child.generate_images(z, training=True)
-			#fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=self._gamma))
+			fitnesses.append(fitness.total_score(self._discriminator, real_images, Gz, gamma=self._gamma))
 
 		#print(fitnesses)
-		new_parents = fitness.select_fittest(fitnesses, children, n_parents=self._generation.get_num_parents())
+		scored_children = [(children[i], ) + fitnesses[i] for i in range(len(children))]
+		new_parents, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 		#print("New generation: ", [parent.mutation() for parent in new_parents])
+		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
+			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
+			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
+
 		self._generation.new_generation(new_parents)
 
 		# Works only with arrays of tensors ??
 		#print(tf.map_fn(lambda child: fitness.total_score(Dx, self._calc_DGz(child, z)), np.array(fintesses)))
-	"""
 
 	def _calc_DGz(self, generator, z):
 		Gz = generator.generate_images(z, training=True)

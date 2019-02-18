@@ -17,6 +17,7 @@ from trainer.discriminator import Discriminator
 from trainer.generation import Generation
 from trainer.egan import EGAN
 from trainer.dcgan import DCGAN
+from trainer.old_egan import OLD_EGAN
 from trainer.utils import clean_dir
 
 import tensorflow as tf
@@ -41,6 +42,12 @@ def train(dataset, epochs):
 				   noise_dim=100, \
 				   discriminator_update_steps=discriminator_train_steps,
 				   gamma=gamma)
+	elif network_type == 'OLD_EGAN':
+		gan = OLD_EGAN(num_parents=1, \
+					   num_children=3, \
+					   noise_dim=100, \
+					   discriminator_update_steps=discriminator_train_steps,
+					   gamma=gamma)
 	else:
 		gan = DCGAN(noise_dim=noise_dim, discriminator_update_steps=discriminator_train_steps)
 
@@ -51,6 +58,7 @@ def cloud_setup():
 	generator_checkpoints_path = os.path.join(JOB_DIR[18:], "checkpoints", "generator")
 	summary_path = os.path.join(JOB_DIR[18:], "summary")
 
+	print(summary_path)
 	if not os.path.exists(discriminator_checkpoints_path):
 		os.makedirs(discriminator_checkpoints_path)
 	if not os.path.exists(generator_checkpoints_path):
