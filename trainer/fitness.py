@@ -18,8 +18,8 @@ def diversity_score(gradients):
 def total_score(discriminator, x, Gz, gamma=0.15):
 
 	with tf.GradientTape() as disc_tape:
-		Dx = discriminator.discriminate_images(x)
-		DGz = discriminator.discriminate_images(Gz)
+		Dx = discriminator.discriminate_images(x, training=False)
+		DGz = discriminator.discriminate_images(Gz, training=False)
 		disc_loss = discriminator.loss(Dx, DGz)
 		
 	gradients = disc_tape.gradient(disc_loss, discriminator.variables())

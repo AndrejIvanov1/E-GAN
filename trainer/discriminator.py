@@ -34,8 +34,8 @@ class Discriminator:
 	def variables(self):
 		return self.get_model().variables
 
-	def discriminate_images(self, images):
-		return self.get_model()(images, training=True)
+	def discriminate_images(self, images, training=True):
+		return self.get_model()(images, training=training)
 
 
 	# -E[log(D(x))] - E[log(1 - D(G(z)))]

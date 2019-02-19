@@ -106,7 +106,7 @@ class EGAN:
 			# Does this tape work like it's supposed to ??
 			with tf.GradientTape(persistent=True) as tape:
 				Gz = parent.generate_images(z)
-				DGz = self._discriminator.discriminate_images(Gz)
+				DGz = self._discriminator.discriminate_images(Gz, training=False)
 
 				children_losses = list(map(lambda mutation: mutation(DGz), mutations))
 			
