@@ -109,8 +109,6 @@ class OLD_EGAN:
 					child = parent.clone(mutation=mutation.__name__)
 					Gz = child.generate_images(z, training=True)
 					DGz = self._discriminator.discriminate_images(Gz, training=False)
-					print("Gz", Gz[0][0])
-					print("DGz", DGz[0])
 					child_loss = mutation(DGz)
 					
 					if record_loss:
