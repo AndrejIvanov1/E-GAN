@@ -100,28 +100,55 @@ class EGAN:
 
 	def gen_train_step(self, mutations, x, record_loss):
 		for parent in self._generation.get_parents():
-			self._saved_weights = parent.get_weights()
-			z = tf.random_normal([self._batch_size, self._noise_dim])
+			# Cannot defun yet
+			children = parent.n_clones(mutations)
 
-			# Does this tape work like it's supposed to ??
-			with tf.GradientTape(persistent=True) as tape:
-				Gz = parent.generate_images(z)
-				DGz = self._discriminator.discriminate_images(Gz, training=False)
+			# Can defun
+			children = self.mutate_children(children, mutations, record_loss)
 
-				children_losses = list(map(lambda mutation: mutation(DGz), mutations))
+			# Can defun
+			self.selection(children, x)
+			
+	
+	def selection(self, children, x):
+		z = tf.random_normal([self._batch_size, self._noise_dim])
+		fitnesses = list(map(lambda child: self.score_child(child, x, z), children))
+
+		scored_children = [(children[i], ) + fitnesses[i] for i in range(len(children))]
+		new_parents, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
+
+		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
+			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
+			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
+
+		self._generation.new_generation(new_parents)
+
+	def score_child(self, child, x, z):
+		Gz = child.generate_images(z, training=True)
+		return fitness.total_score(self._discriminator, x, Gz, gamma=self._gamma)
+
+	def mutate_children(self, children, mutations, record_loss):
+		assert len(children) == len(mutations)
+
+		z = tf.random_normal([self._batch_size, self._noise_dim])
+		return list(map(lambda i: self.mutate_child(children[i], mutations[i], z, record_loss), range(len(children))))
+
+
+	def mutate_child(self, child, mutation, z, record_loss):
+		with tf.GradientTape() as gen_tape:
+			Gz = child.generate_images(z, training=True)
+			DGz = self._discriminator.discriminate_images(Gz, training=False)
+			child_loss = mutation(DGz)
 			
 			if record_loss:
-				self.record_mutations(mutations, children_losses)
+				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+					tf.contrib.summary.scalar(child.mutation(), child_loss, family='mutations')
 
-			children = list(map(lambda loss: self.apply_gradients(parent, loss, tape, z), children_losses))
+		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
+		child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
 
-			summary_writer = None
-			if record_loss:
-				summary_writer == self._summary_writer
-			scored_children = list(map(lambda w_Gz_pair: ((w_Gz_pair[0],) + fitness.total_score(self._discriminator, x, w_Gz_pair[1], gamma=self._gamma)) , children))
-	
-			self.selection(scored_children)
-
+		return child
 
 	def record_mutations(self, mutations, losses):
 		assert len(mutations) == len(losses)
@@ -144,7 +171,9 @@ class EGAN:
 
 		return new_weights, Gz
 
-	def selection(self, scored_children):
+
+
+	def old_selection(self, scored_children):
 		weights, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():

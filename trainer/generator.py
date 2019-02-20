@@ -69,6 +69,9 @@ class Generator:
 
 		return new_generator
 
+	def n_clones(self, mutations):
+		return [self.clone(mutation=m.__name__) for m in mutations]
+
 	def generate_images(self, noise, training=False):
 		return self.get_model()(noise, training=training)
 
