@@ -78,19 +78,22 @@ class EGAN:
 							            record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
 
-	def disc_train_step(self, real_images, record_loss):
-		noise = tf.random_normal([self._batch_size, self._noise_dim])
-		generated_images = self._generation.generate_images(noise)
+	#@tf.contrib.eager.defun
+	def disc_train_step(self, x, record_loss):
+		global z, Gz, Dx, DGz, disc_loss, gradients_of_discriminator, disc_tape
+
+		z = tf.random_normal([self._batch_size, self._noise_dim])
+		Gz = self._generation.generate_images(z)
 
 		with tf.GradientTape() as disc_tape:
-			real_output = self._discriminator.discriminate_images(real_images)
-			generated_output = self._discriminator.discriminate_images(generated_images)
+			Dx = self._discriminator.discriminate_images(x)
+			DGz = self._discriminator.discriminate_images(Gz)
 
-			if real_output.shape != generated_output.shape:
-				print("D real output shape: {} does not match D generated output shape: {}".format(real_output.shape, generated_output.shape))
+			if Dx.shape != DGz.shape:
+				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
 				return
 
-			disc_loss = self._discriminator.loss(real_output, generated_output)
+			disc_loss = self._discriminator.loss(Dx, DGz)
 			if record_loss:
 				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 					tf.contrib.summary.scalar('Discriminator_loss', disc_loss)
@@ -109,7 +112,6 @@ class EGAN:
 			# Can defun
 			self.selection(children, x)
 			
-	
 	def selection(self, children, x):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 		fitnesses = list(map(lambda child: self.score_child(child, x, z), children))
