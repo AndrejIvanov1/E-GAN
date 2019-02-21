@@ -86,8 +86,8 @@ class EGAN:
 		Gz = self._generation.generate_images(z)
 
 		with tf.GradientTape() as disc_tape:
-			Dx = self._discriminator.discriminate_images(x)
-			DGz = self._discriminator.discriminate_images(Gz)
+			Dx = self._discriminator.discriminate_images(x, training=True)
+			DGz = self._discriminator.discriminate_images(Gz, training=True)
 
 			if Dx.shape != DGz.shape:
 				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
@@ -140,7 +140,7 @@ class EGAN:
 	def mutate_child(self, child, mutation, z, record_loss):
 		with tf.GradientTape() as gen_tape:
 			Gz = child.generate_images(z, training=True)
-			DGz = self._discriminator.discriminate_images(Gz, training=False)
+			DGz = self._discriminator.discriminate_images(Gz, training=True)
 			child_loss = mutation(DGz)
 			
 			if record_loss:
