@@ -60,6 +60,7 @@ class EGAN:
 								     job_dir)
 			upload_dir_to_cloud(self._summary_path[18:])
 
+	#@tf.contrib.eager.defun
 	def train_step(self, real_batch, record_loss=False):
 		real_batch = tf.split(real_batch, self._discriminator_update_steps, axis=0)
 		start_time = time.time()
@@ -78,7 +79,6 @@ class EGAN:
 							            record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
 
-	#@tf.contrib.eager.defun
 	def disc_train_step(self, x, record_loss):
 		global z, Gz, Dx, DGz, disc_loss, gradients_of_discriminator, disc_tape
 
@@ -101,6 +101,7 @@ class EGAN:
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
 
+	@tf.contrib.eager.defun
 	def gen_train_step(self, mutations, x, record_loss):
 		for parent in self._generation.get_parents():
 			# Cannot defun yet
@@ -125,6 +126,7 @@ class EGAN:
 			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
 
 		self._generation.new_generation(new_parents)
+
 
 	def score_child(self, child, x, z):
 		Gz = child.generate_images(z, training=True)

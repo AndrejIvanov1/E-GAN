@@ -55,9 +55,6 @@ class DCGAN:
 					iteration += 1
 					print("Batch time: ", time.time() - batch_time)
 
-					if iteration == 3:
-						break
-
 					self._global_step.assign_add(1)
 
 				if epoch > 0 and epoch % 9 == 0:
@@ -126,6 +123,7 @@ class DCGAN:
 		gradients_of_generator = gen_tape.gradient(gen_loss, self._generator.variables())
 		self._generator.get_optimizer().apply_gradients(zip(gradients_of_generator, self._generator.variables()))
 
+	@tf.contrib.eager.defun
 	def disc_train_step(self, x, DGz, disc_tape, record_loss=False):
 		with tf.GradientTape() as disc_tape:
 			Dx = self._discriminator.discriminate_images(x)
