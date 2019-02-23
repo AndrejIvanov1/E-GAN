@@ -80,14 +80,14 @@ class EGAN:
 		print("Gen train step: ", time.time() - start_time)
 
 	def disc_train_step(self, x, record_loss):
-		global z, Gz, Dx, DGz, disc_loss, gradients_of_discriminator, disc_tape
+		#global z, Gz, Dx, DGz, disc_loss, gradients_of_discriminator, disc_tape
 
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 		Gz = self._generation.generate_images(z)
 
 		with tf.GradientTape() as disc_tape:
-			Dx = self._discriminator.discriminate_images(x, training=True)
-			DGz = self._discriminator.discriminate_images(Gz, training=True)
+			Dx = self._discriminator.discriminate_images(x, training=False)
+			DGz = self._discriminator.discriminate_images(Gz, training=False)
 
 			if Dx.shape != DGz.shape:
 				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
