@@ -25,6 +25,8 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
+		self._optimizer = tf.keras.optimizers.SGD()
+
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
 
@@ -86,8 +88,8 @@ class EGAN:
 		Gz = self._generation.generate_images(z)
 
 		with tf.GradientTape() as disc_tape:
-			Dx = self._discriminator.discriminate_images(x, training=False)
-			DGz = self._discriminator.discriminate_images(Gz, training=False)
+			Dx = self._discriminator.discriminate_images(x, training=True)
+			DGz = self._discriminator.discriminate_images(Gz, training=True)
 
 			if Dx.shape != DGz.shape:
 				print("D real output shape: {} does not match D generated output shape: {}".format(Dx.shape, DGz.shape))
@@ -101,7 +103,6 @@ class EGAN:
 		gradients_of_discriminator = disc_tape.gradient(disc_loss, self._discriminator.variables())
 		self._discriminator.get_optimizer().apply_gradients(zip(gradients_of_discriminator, self._discriminator.variables()))
 
-	@tf.contrib.eager.defun
 	def gen_train_step(self, mutations, x, record_loss):
 		for parent in self._generation.get_parents():
 			# Cannot defun yet
@@ -142,7 +143,7 @@ class EGAN:
 	def mutate_child(self, child, mutation, z, record_loss):
 		with tf.GradientTape() as gen_tape:
 			Gz = child.generate_images(z, training=True)
-			DGz = self._discriminator.discriminate_images(Gz, training=True)
+			DGz = self._discriminator.discriminate_images(Gz, training=False)
 			child_loss = mutation(DGz)
 			
 			if record_loss:
