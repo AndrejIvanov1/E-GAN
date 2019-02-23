@@ -25,8 +25,6 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._optimizer = tf.keras.optimizers.SGD()
-
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
 
