@@ -25,7 +25,7 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._optimizer = tf.keras.optimizers.SGD()
+		self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=1e-4)
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
@@ -151,7 +151,7 @@ class EGAN:
 					tf.contrib.summary.scalar(child.mutation(), child_loss, family='mutations')
 
 		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
-		child.get_optimizer().apply_gradients(zip(gradients_of_child, child.variables()))
+		self._optimizer.apply_gradients(zip(gradients_of_child, child.variables()))
 
 		return child
 
