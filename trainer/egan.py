@@ -54,7 +54,6 @@ class EGAN:
 
 				self._global_step.assign_add(1)
 				iteration+=1
-				break
 								
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 			#self.save_models()
@@ -110,47 +109,58 @@ class EGAN:
 			# Cannot defun yet
 			children = parent.n_clones(mutations)
 
-			for i in range(len(children[0].variables())):
-				print(children[0].variables()[i]._unique_id,
-					  children[1].variables()[i]._unique_id,
-					  children[2].variables()[i]._unique_id,
-					  parent.variables()[i]._unique_id)
-				input()
 			# Can defun
-			children = self.mutate_children(children, mutations, record_loss)
+			values, Gz = zip(*self.mutate_children(parent, children, mutations, record_loss))
 
 			# Can defun
-			self.selection(children, x)
+			self.selection(values, Gz, x)
 			
-	def selection(self, children, x):
+			
+	def selection(self, values, Gzs, x):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
-		fitnesses = list(map(lambda child: self.score_child(child, x, z), children))
+		fitnesses = list(map(lambda Gz: self.score_child(Gz, x), Gzs))
 
-		scored_children = [(children[i], ) + fitnesses[i] for i in range(len(children))]
-		new_parents, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
+		scored_children = [(values[i], ) + fitnesses[i] for i in range(len(values))]
+		new_values, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
 			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
 			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
 
-		self._generation.new_generation(new_parents)
+		self._generation.new_generation(new_values)
 
 
-	def score_child(self, child, x, z):
-		Gz = child.generate_images(z, training=True)
+	def score_child(self, Gz, x):
 		return fitness.total_score(self._discriminator, x, Gz, gamma=self._gamma)
 
-	def mutate_children(self, children, mutations, record_loss):
+	def mutate_children(self, parent, children, mutations, record_loss):
 		assert len(children) == len(mutations)
 
 		z = tf.random_normal([self._batch_size, self._noise_dim])
-		return list(map(lambda i: self.mutate_child(children[i], mutations[i], z, record_loss), range(len(children))))
+		return list(map(lambda i: self.mutate_child(parent, children[i], mutations[i], z, record_loss), range(len(children))))
 
 
-	def mutate_child(self, child, mutation, z, record_loss):
+	def mutate_child(self, parent, child, mutation, z, record_loss):
+		"""
+		self._parent_variables = [None for i in range(len(parent.variables()))]
+		for i in range(len(parent.variables())):
+			self._parent_variables[i] = parent.variables()[i]
+		print("Pre variables: ", self._parent_variables[0][0][0]) 
+		"""
+		self._parent_values = [var.value() for var in parent.variables()]
+		"""
+		saved_variable = parent.variables()[0]
+		print("Original variable: ", type(saved_variable))
+		#print("Dir ", dir(saved_variable))
+		saved_value = saved_variable.value()
+		print("Original value: ", saved_value)
+		saved_variable.assign(saved_value)
+		print("New value: ", saved_variable.value())
+		input()
+		"""
 		with tf.GradientTape() as gen_tape:
-			Gz = child.generate_images(z, training=True)
+			Gz = parent.generate_images(z, training=True)
 			DGz = self._discriminator.discriminate_images(Gz, training=False)
 			child_loss = mutation(DGz)
 			
@@ -158,16 +168,24 @@ class EGAN:
 				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 					tf.contrib.summary.scalar(child.mutation(), child_loss, family='mutations')
 
-		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
-		self._optimizer.apply_gradients(zip(gradients_of_child, child.variables()))
-		
-		print("M: ", len(self._optimizer._slots['m']))
-		print("M: ", len(self._optimizer._slots['v']))
-		#print("Child variable layers: ", len(child.variables()))
-		#print("Opt variable layers: ", len(self._optimizer.variables()))
-		#print("optimizer: ", [l.shape for l in self._optimizer.variables()])
+		gradients_of_child = gen_tape.gradient(child_loss, parent.variables())
+		self._optimizer.apply_gradients(zip(gradients_of_child, parent.variables()))
 
-		return child
+		Gz = parent.generate_images(z, training=False)
+		new_values = [var.value() for var in parent.variables()]
+
+		for i in range(len(self._parent_values)):
+			val = self._parent_values[i]
+			parent.variables()[i].assign(val)
+
+		"""
+		print("Pre values :", parent.variables()[0].value())
+		print("Post values :", new_values[0])
+
+		print("M: ", len(self._optimizer._slots['m']))
+		print("M: ", len(self._optimizer._slots['v']))"""
+
+		return new_values, Gz
 	"""
 	def record_mutations(self, mutations, losses):
 		assert len(mutations) == len(losses)

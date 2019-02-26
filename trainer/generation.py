@@ -22,8 +22,17 @@ class Generation:
 		for i in range(self._num_parents):
 			self.update_parent(i, new_weights[i])
 
-	def new_generation(self, new_parents):
-		self._parents = new_parents
+	def new_generation(self, new_values):
+		new_values = new_values[0]
+		for i in range(len(new_values)):
+			val = new_values[i]
+			"""
+			print(self.get_parent().variables()[i])
+			print("VAL --------------", val) 
+			print(self.get_parent().variables()[i].shape, val.shape)
+			"""
+			self.get_parent().variables()[i].assign(val)
+		#self._parents = new_parents
 
 	def get_parents(self):
 		return self._parents
