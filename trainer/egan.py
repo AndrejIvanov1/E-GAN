@@ -108,23 +108,23 @@ class EGAN:
 		for parent in self._generation.get_parents():
 
 			with tf.GradientTape(persistent=True) as tape:
-				losses = self.mutate_children(parent, mutations, tape, record_loss)
+				z = tf.random_normal([self._batch_size, self._noise_dim])
+				losses = self.mutate_children(parent, mutations, tape, z, record_loss)
 
-			children_values, Gz = self.apply_gradients(tape, parent, losses)
+			children_values, Gz = self.apply_gradients(tape, parent, losses, z)
 
 			# Can defun
 			self.selection(children_values, Gz, x)
 
-	def mutate_children(self, parent, mutations, tape, record_loss):
-		z = tf.random_normal([self._batch_size, self._noise_dim])
+	def mutate_children(self, parent, mutations, tape, z, record_loss):
 		Gz = parent.generate_images(z, training=True)
 		DGz = self._discriminator.discriminate_images(Gz, training=False) 
 
 		return list(map(lambda mutation: self.mutate_child(parent, tape, mutation, DGz, record_loss), mutations))
 
-	def apply_gradients(self, tape, parent, losses):
+	def apply_gradients(self, tape, parent, losses, z):
 		parent.save_values()
-		z = tf.random_normal([self._batch_size, self._noise_dim])
+		#z = tf.random_normal([self._batch_size, self._noise_dim])
 
 		return zip(*list(map(lambda loss: self.apply_gradient(tape, parent, loss, z), losses)))
 
