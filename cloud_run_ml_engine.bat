@@ -1,7 +1,7 @@
-gcloud ml-engine jobs submit training working_egan_new_opt_method_1 ^
+gcloud ml-engine jobs submit training working_egan_new_opt_method_2_1 ^
  	--module-name=trainer.main ^
  	--package-path=trainer ^
- 	--job-dir=gs://gan_datasets/working_egan/new_opt_method1 ^
+ 	--job-dir=gs://gan_datasets/working_egan/new_opt_method2_1 ^
  	--staging-bucket=gs://gan_datasets ^
  	--python-version=3.5 ^
  	--runtime-version=1.12 ^

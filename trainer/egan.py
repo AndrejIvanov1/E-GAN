@@ -106,38 +106,55 @@ class EGAN:
 
 	def gen_train_step(self, mutations, x, record_loss):
 		for parent in self._generation.get_parents():
-			# Can defun
-			children_values, Gz = self.mutate_children(parent, mutations, record_loss)
+
+			with tf.GradientTape(persistent=True) as tape:
+				losses = self.mutate_children(parent, mutations, tape, record_loss)
+
+			children_values, Gz = self.apply_gradients(tape, parent, losses)
 
 			# Can defun
 			self.selection(children_values, Gz, x)
 
-	def mutate_children(self, parent, mutations, record_loss):
+	def mutate_children(self, parent, mutations, tape, record_loss):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
-		parent.save_values() 
+		Gz = parent.generate_images(z, training=True)
+		DGz = self._discriminator.discriminate_images(Gz, training=False) 
 
-		return zip(*list(map(lambda mutation: self.mutate_child(parent, mutation, z, record_loss), mutations)))
+		return list(map(lambda mutation: self.mutate_child(parent, tape, mutation, DGz, record_loss), mutations))
 
+	def apply_gradients(self, tape, parent, losses):
+		parent.save_values()
+		z = tf.random_normal([self._batch_size, self._noise_dim])
 
-	def mutate_child(self, parent, mutation, z, record_loss):
-		with tf.GradientTape() as gen_tape:
-			Gz = parent.generate_images(z, training=True)
-			DGz = self._discriminator.discriminate_images(Gz, training=False)
-			print("DGz: ", DGz[0])
-			child_loss = mutation(DGz)
-			
-			if record_loss:
-				with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
-					tf.contrib.summary.scalar(mutation.__name__, child_loss, family='mutations')
+		return zip(*list(map(lambda loss: self.apply_gradient(tape, parent, loss, z), losses)))
 
-		gradients_of_child = gen_tape.gradient(child_loss, parent.variables())
+	def apply_gradient(self, tape, parent, loss, z):
+		gradients= tape.gradient(loss, parent.variables())
+		self._optimizer.apply_gradients(zip(gradients, parent.variables()))
+
+		Gz = parent.generate_images(z, training=False)
+		new_values = parent.values()
+		parent.reset_values() 
+
+		return new_values, Gz
+
+	def mutate_child(self, parent, tape, mutation, DGz, record_loss):
+		child_loss = mutation(DGz)
+		
+		if record_loss:
+			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+				tf.contrib.summary.scalar(mutation.__name__, child_loss, family='mutations')
+
+		"""
+		gradients_of_child = tape.gradient(child_loss, parent.variables())
 		self._optimizer.apply_gradients(zip(gradients_of_child, parent.variables()))
 
 		Gz = parent.generate_images(z, training=False)
 		new_values = parent.values()
-		parent.reset_values()
+		parent.reset_values() 
 
-		return new_values, Gz
+		return new_values, Gz """
+		return child_loss
 			
 			
 	def selection(self, values, Gzs, x):
