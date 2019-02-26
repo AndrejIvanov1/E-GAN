@@ -1,7 +1,7 @@
-gcloud ml-engine jobs submit training working_egan_simple_optimizer ^
+gcloud ml-engine jobs submit training working_egan_rmsprop_lr_3 ^
  	--module-name=trainer.main ^
  	--package-path=trainer ^
- 	--job-dir=gs://gan_datasets/working_egan/simple_optimizer ^
+ 	--job-dir=gs://gan_datasets/working_egan/one_optimizer/rmsprop_lr_3 ^
  	--staging-bucket=gs://gan_datasets ^
  	--python-version=3.5 ^
  	--runtime-version=1.12 ^

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import copy
 
 class Generator:
 
@@ -64,7 +65,23 @@ class Generator:
 		model_clone = self._create_model()
 		model_clone.set_weights(self.get_weights())
 
+		print(self.variables()[0].name)
+		print(self.variables()[0]._unique_id)
+
+		for i in range(len(self.variables())):
+			"""
+			print(dir(model_clone.variables[i]))
+			print(model_clone.variables[i].name)
+			print(model_clone.variables[i]._unique_id) """
+			#model_clone.variables[i].name = self.variables()[i].name
+			#model_clone.variables[i] = tf.identity(self.variables()[i])
+			model_clone.variables[i] = copy.deepcopy(self.variables()[i])
+			print("New id: ", model_clone.variables[i]._unique_id)
+			print("Parent id: ", self.variables()[i]._unique_id)
+			input()
+
 		new_generator = Generator(model=model_clone)
+
 		new_generator.set_mutation(mutation)
 
 		return new_generator

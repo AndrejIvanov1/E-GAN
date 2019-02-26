@@ -4,6 +4,7 @@ from   trainer.utils import generate_and_save_images, upload_file_to_cloud, uplo
 from   trainer.generator import Generator
 from   trainer.discriminator import Discriminator
 from   trainer.generation import Generation
+from   trainer.adam_optimizer import CustomAdamOptimizer
 
 import tensorflow as tf
 import time
@@ -25,7 +26,7 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=1e-4)
+		self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
@@ -53,6 +54,7 @@ class EGAN:
 
 				self._global_step.assign_add(1)
 				iteration+=1
+				break
 								
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 			#self.save_models()
@@ -108,6 +110,12 @@ class EGAN:
 			# Cannot defun yet
 			children = parent.n_clones(mutations)
 
+			for i in range(len(children[0].variables())):
+				print(children[0].variables()[i]._unique_id,
+					  children[1].variables()[i]._unique_id,
+					  children[2].variables()[i]._unique_id,
+					  parent.variables()[i]._unique_id)
+				input()
 			# Can defun
 			children = self.mutate_children(children, mutations, record_loss)
 
@@ -152,9 +160,15 @@ class EGAN:
 
 		gradients_of_child = gen_tape.gradient(child_loss, child.variables())
 		self._optimizer.apply_gradients(zip(gradients_of_child, child.variables()))
+		
+		print("M: ", len(self._optimizer._slots['m']))
+		print("M: ", len(self._optimizer._slots['v']))
+		#print("Child variable layers: ", len(child.variables()))
+		#print("Opt variable layers: ", len(self._optimizer.variables()))
+		#print("optimizer: ", [l.shape for l in self._optimizer.variables()])
 
 		return child
-
+	"""
 	def record_mutations(self, mutations, losses):
 		assert len(mutations) == len(losses)
 
@@ -176,8 +190,6 @@ class EGAN:
 
 		return new_weights, Gz
 
-
-
 	def old_selection(self, scored_children):
 		weights, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 
@@ -188,7 +200,6 @@ class EGAN:
 
 		self._generation.next_gen(weights)
 
-	"""
 	def old_selection(self, children, real_images):
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 
@@ -205,7 +216,6 @@ class EGAN:
 
 		# Works only with arrays of tensors ??
 		#print(tf.map_fn(lambda child: fitness.total_score(Dx, self._calc_DGz(child, z)), np.array(fintesses)))
-	"""
 
 	def _calc_DGz(self, generator, z):
 		Gz = generator.generate_images(z, training=True)
@@ -219,3 +229,4 @@ class EGAN:
 		tf.keras.models.save_model(self._generation.get_parent().get_model(), generator_path)
 		upload_file_to_cloud(discriminator_path)
 		upload_file_to_cloud(generator_path)
+	"""
