@@ -28,7 +28,7 @@ class EGAN:
 
 		self._mutations = [heuristic_mutation, minimax_mutation, least_square_mutation]
 		#self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
-		self._optimizers = [tf.train.AdamOptimizer(learning_rate=1e-3) for mutation in self._mutations]
+		self._optimizers = [tf.train.AdamOptimizer(learning_rate=1e-4) for mutation in self._mutations]
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
@@ -111,6 +111,7 @@ class EGAN:
 				z = tf.random_normal([self._batch_size, self._noise_dim])
 				losses = self.mutate_children(parent, mutations, tape, z, record_loss)
 
+			z = tf.random_normal([self._batch_size, self._noise_dim])
 			children_values, Gz = self.apply_gradients(tape, parent, losses, z)
 
 			# Can defun
