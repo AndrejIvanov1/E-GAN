@@ -26,7 +26,9 @@ class EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self._mutations = [heuristic_mutation, minimax_mutation, least_square_mutation]
+		#self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self._optimizers = [tf.train.AdamOptimizer(learning_rate=1e-3) for mutation in self._mutations]
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
@@ -75,9 +77,7 @@ class EGAN:
 		print("Discriminator train step time:", time.time() - start_time)
 
 		start_time = time.time()
-		children = self.gen_train_step([heuristic_mutation, 
-							            minimax_mutation, 
-							            least_square_mutation],
+		children = self.gen_train_step(self._mutations,
 							            real_batch[0], 
 							            record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
@@ -126,11 +126,11 @@ class EGAN:
 		parent.save_values()
 		#z = tf.random_normal([self._batch_size, self._noise_dim])
 
-		return zip(*list(map(lambda loss: self.apply_gradient(tape, parent, loss, z), losses)))
+		return zip(*list(map(lambda i: self.apply_gradient(tape, parent, losses[i], self._optimizers[0], z), range(len(losses)))))
 
-	def apply_gradient(self, tape, parent, loss, z):
+	def apply_gradient(self, tape, parent, loss, optimizer, z):
 		gradients= tape.gradient(loss, parent.variables())
-		self._optimizer.apply_gradients(zip(gradients, parent.variables()))
+		optimizer.apply_gradients(zip(gradients, parent.variables()))
 
 		Gz = parent.generate_images(z, training=False)
 		new_values = parent.values()
@@ -145,15 +145,6 @@ class EGAN:
 			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 				tf.contrib.summary.scalar(mutation.__name__, child_loss, family='mutations')
 
-		"""
-		gradients_of_child = tape.gradient(child_loss, parent.variables())
-		self._optimizer.apply_gradients(zip(gradients_of_child, parent.variables()))
-
-		Gz = parent.generate_images(z, training=False)
-		new_values = parent.values()
-		parent.reset_values() 
-
-		return new_values, Gz """
 		return child_loss
 			
 			
