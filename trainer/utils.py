@@ -93,3 +93,10 @@ def clean_dir(dir_path):
 	for filename in os.listdir(dir_path):
 		path = os.path.join(dir_path, filename)
 		os.unlink(path)
+
+
+def show_random_image(images):
+	# Get 28x28 image
+	sample_1 = images[25].reshape(28,28)
+	plt.imshow(sample_1, cmap='Greys')
+	plt.show()
