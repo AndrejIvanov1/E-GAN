@@ -17,18 +17,30 @@ class Discriminator:
 	
 	def _create_model(self):
 		model = tf.keras.Sequential()
-		model.add(tf.keras.layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same'))
-		model.add(tf.keras.layers.LeakyReLU())
-		model.add(tf.keras.layers.Dropout(0.3))
-		  
-		model.add(tf.keras.layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same'))
-		model.add(tf.keras.layers.LeakyReLU())
-		model.add(tf.keras.layers.Dropout(0.3))
-		   
+
+		model.add(tf.keras.layers.Conv2D(32, kernel_size=3, strides=2, input_shape=(28, 28, 1), padding="same"))
+		model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+		model.add(tf.keras.layers.Dropout(0.25))
+
+		model.add(tf.keras.layers.Conv2D(64, kernel_size=3, strides=2, padding="same"))
+		model.add(tf.keras.layers.ZeroPadding2D(padding=((0,1),(0,1))))
+		model.add(tf.keras.layers.BatchNormalization(momentum=0.8))
+		model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+		model.add(tf.keras.layers.Dropout(0.25))
+
+		model.add(tf.keras.layers.Conv2D(128, kernel_size=3, strides=2, padding="same"))
+		model.add(tf.keras.layers.BatchNormalization(momentum=0.8))
+		model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+		model.add(tf.keras.layers.Dropout(0.25))
+
+		model.add(tf.keras.layers.Conv2D(256, kernel_size=3, strides=1, padding="same"))
+		model.add(tf.keras.layers.BatchNormalization(momentum=0.8))
+		model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+		model.add(tf.keras.layers.Dropout(0.25))
+
 		model.add(tf.keras.layers.Flatten())
-		
 		model.add(tf.keras.layers.Dense(1))
-	 
+
 		return model
 
 	def variables(self):

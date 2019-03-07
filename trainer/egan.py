@@ -127,7 +127,7 @@ class EGAN:
 		parent.save_values()
 		#z = tf.random_normal([self._batch_size, self._noise_dim])
 
-		return zip(*list(map(lambda i: self.apply_gradient(tape, parent, losses[i], self._optimizers[i], z), range(len(losses)))))
+		return zip(*list(map(lambda i: self.apply_gradient(tape, parent, losses[i], self._optimizers[0], z), range(len(losses)))))
 
 	def apply_gradient(self, tape, parent, loss, optimizer, z):
 		gradients= tape.gradient(loss, parent.variables())

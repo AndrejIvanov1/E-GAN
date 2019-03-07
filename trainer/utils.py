@@ -30,9 +30,15 @@ def generate_and_save_images(generator, epoch, test_input, job_dir):
 	#plt.show()
 
  
+def flat(tensor):
+	if tensor is None:
+		return []
+
+	return tf.reshape(tensor, [-1])
+
  # Flattens a list of tensors(do not need to be of the same shape)
 def flatten(tensor_list):
-	return tf.concat([tf.reshape(tensor, [-1]) for tensor in tensor_list], axis=0)
+	return tf.concat([flat(tensor) for tensor in tensor_list], axis=0)
 
 def download_from_cloud(source_blob_name):
 	source_blob_name = source_blob_name.replace("\\", "/")
@@ -97,6 +103,7 @@ def clean_dir(dir_path):
 
 def show_random_image(images):
 	# Get 28x28 image
-	sample_1 = images[25].reshape(28,28)
-	plt.imshow(sample_1, cmap='Greys')
-	plt.show()
+	for i in range(10):
+		sample_1 = images[i*10].reshape(28,28)
+		plt.imshow(sample_1, cmap='Greys')
+		plt.show()
