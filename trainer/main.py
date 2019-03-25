@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
 
 	print(train_images.shape, train_labels.shape)
-	#show_random_image(train_images)
+	show_random_image(train_images)
 	train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE * discriminator_train_steps)
 
 	local_setup()
