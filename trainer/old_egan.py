@@ -25,7 +25,9 @@ class OLD_EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self._mutations = [heuristic_mutation, minimax_mutation, least_square_mutation]
+		#self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self._optimizers = [tf.train.AdamOptimizer(learning_rate=1e-4) for mutation in self._mutations]
 
 		self._num_examples_to_generate = 16
 		self._random_vector_for_generation = tf.random_normal([self._num_examples_to_generate, noise_dim])
@@ -137,10 +139,10 @@ class OLD_EGAN:
 		assert len(children) == len(mutations)
 
 		z = tf.random_normal([self._batch_size, self._noise_dim])
-		return list(map(lambda i: self.mutate_child(parent, children[i], mutations[i], z, record_loss), range(len(children))))
+		return list(map(lambda i: self.mutate_child(parent, children[i], mutations[i], self._optimizers[i], z, record_loss), range(len(children))))
 
 
-	def mutate_child(self, parent, child, mutation, z, record_loss):
+	def mutate_child(self, parent, child, mutation, optimizer, z, record_loss):
 		"""
 		self._parent_variables = [None for i in range(len(parent.variables()))]
 		for i in range(len(parent.variables())):
@@ -168,7 +170,7 @@ class OLD_EGAN:
 					tf.contrib.summary.scalar(child.mutation(), child_loss, family='mutations')
 
 		gradients_of_child = gen_tape.gradient(child_loss, parent.variables())
-		self._optimizer.apply_gradients(zip(gradients_of_child, parent.variables()))
+		optimizer.apply_gradients(zip(gradients_of_child, parent.variables()))
 
 		Gz = parent.generate_images(z, training=False)
 		new_values = [var.value() for var in parent.variables()]
