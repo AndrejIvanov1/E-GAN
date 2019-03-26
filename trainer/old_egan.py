@@ -10,6 +10,7 @@ import time
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import defaultdict
 
 print("tf version: ", tf.__version__)
 tf.enable_eager_execution()
@@ -46,17 +47,25 @@ class OLD_EGAN:
 		noise_for_display_images = noise = tf.random_normal([self._num_examples_to_generate, self._noise_dim])
 		for epoch in range(epochs):
 			start_time = time.time()
+			self._mutation_picked_cnt = defaultdict(int)
 			iteration = 0
 			for real_batch in dataset:
 				print("Iteration #{}".format(iteration))
+				if iteration != 104:
+					iteration+=1
+					continue
 				batch_time = time.time()
 				record_loss = ((iteration % n_iterations_loss_plot) == 0)
 				self.train_step(real_batch, record_loss=record_loss)
 
 				self._global_step.assign_add(1)
 				iteration+=1
-								
+				
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
+			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
+				for mutation in self._mutations:
+					tf.contrib.summary.scalar(mutation.__name__, self._mutation_picked_cnt[mutation], family='picked_mutations')
+					
 			#self.save_models()
 			generate_and_save_images(self._generation.get_parent(), \
 								     epoch, \
@@ -121,9 +130,12 @@ class OLD_EGAN:
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 		fitnesses = list(map(lambda Gz: self.score_child(Gz, x), Gzs))
 
-		scored_children = [(values[i], ) + fitnesses[i] for i in range(len(values))]
-		new_values, fitnesses, quality, diversity = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
+		scored_children = [(values[i], i) + fitnesses[i] for i in range(len(values))]
+		new_values, fitnesses, quality, diversity, picked_i = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 
+		self._mutation_picked_cnt[self._mutations[picked_i[0]]] += 1
+
+		print(self._mutation_picked_cnt)
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 			tf.contrib.summary.scalar('total_score', fitnesses[0], family='fitness')
 			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
