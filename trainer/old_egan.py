@@ -18,7 +18,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 class OLD_EGAN:
 	def __init__(self, num_parents, num_children, noise_dim, discriminator_update_steps=2, gamma=0.4):
-		self._generation = Generation(num_parents=1, num_children=3)
+		self._generation = Generation(num_parents=1, num_children=2)
 		self._generation.initialize(noise_dim=noise_dim)
 		self._noise_dim = noise_dim
 
@@ -26,7 +26,7 @@ class OLD_EGAN:
 		self._discriminator_update_steps = discriminator_update_steps
 		self._gamma = gamma
 
-		self._mutations = [heuristic_mutation, minimax_mutation, least_square_mutation]
+		self._mutations = [heuristic_mutation, minimax_mutation]
 		#self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
 		self._optimizers = [tf.train.AdamOptimizer(learning_rate=1e-4) for mutation in self._mutations]
 
@@ -50,17 +50,13 @@ class OLD_EGAN:
 			self._mutation_picked_cnt = defaultdict(int)
 			iteration = 0
 			for real_batch in dataset:
-				print("Iteration #{}".format(iteration))
-				if iteration != 104:
-					iteration+=1
-					continue
 				batch_time = time.time()
 				record_loss = ((iteration % n_iterations_loss_plot) == 0)
 				self.train_step(real_batch, record_loss=record_loss)
 
 				self._global_step.assign_add(1)
 				iteration+=1
-				
+
 			print ('Time taken for epoch {}: {} sec'.format(epoch + 1, time.time()-start_time))
 			with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
 				for mutation in self._mutations:
@@ -85,9 +81,7 @@ class OLD_EGAN:
 		print("Discriminator train step time:", time.time() - start_time)
 
 		start_time = time.time()
-		children = self.gen_train_step([heuristic_mutation, 
-							            minimax_mutation, 
-							            least_square_mutation],
+		children = self.gen_train_step(self._mutations,
 							            real_batch[0], 
 							            record_loss=record_loss)
 		print("Gen train step: ", time.time() - start_time)
@@ -130,10 +124,13 @@ class OLD_EGAN:
 		z = tf.random_normal([self._batch_size, self._noise_dim])
 		fitnesses = list(map(lambda Gz: self.score_child(Gz, x), Gzs))
 
-		scored_children = [(values[i], i) + fitnesses[i] for i in range(len(values))]
+		scored_children = [(values[i],) + fitnesses[i] + (i,) for i in range(len(values))]
 		new_values, fitnesses, quality, diversity, picked_i = fitness.select_fittest(scored_children, n_parents=self._generation.get_num_parents())
 
-		self._mutation_picked_cnt[self._mutations[picked_i[0]]] += 1
+		try:
+			self._mutation_picked_cnt[self._mutations[picked_i[0]]] += 1
+		except Exception as e:
+			print("Cannot log picked i: ", picked_i)
 
 		print(self._mutation_picked_cnt)
 		with self._summary_writer.as_default(), tf.contrib.summary.always_record_summaries():
