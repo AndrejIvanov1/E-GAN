@@ -11,6 +11,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
+from random import randint
 
 print("tf version: ", tf.__version__)
 tf.enable_eager_execution()
@@ -138,6 +139,10 @@ class OLD_EGAN:
 			tf.contrib.summary.scalar('quality_score', quality[0], family='fitness')
 			tf.contrib.summary.scalar('diversity_score', diversity[0], family='fitness')
 
+		if randint(1, 100) <= 15:
+			print("Random")
+			new_values = [values[randint(0, len(values)-1)]]
+			
 		self._generation.new_generation(new_values)
 
 

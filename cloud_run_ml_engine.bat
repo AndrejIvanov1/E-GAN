@@ -1,7 +1,7 @@
-gcloud ml-engine jobs submit training simple_models_2_mutations ^
+gcloud ml-engine jobs submit training mutations_2_random_0_15 ^
  	--module-name=trainer.main ^
  	--package-path=trainer ^
- 	--job-dir=gs://gan_datasets/simple_models/2_mutations ^
+ 	--job-dir=gs://gan_datasets/simple_models/2_mutations_randomness_0_15 ^
  	--staging-bucket=gs://gan_datasets ^
  	--python-version=3.5 ^
  	--runtime-version=1.12 ^
